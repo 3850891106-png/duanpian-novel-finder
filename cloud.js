@@ -19,8 +19,10 @@
           apikey: config.supabaseAnonKey,
           Authorization: `Bearer ${config.supabaseAnonKey}`,
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify(body),
+        cache: "no-store",
       },
     );
     if (!response.ok) {
@@ -32,13 +34,7 @@
 
   function remoteBook(row) {
     const scene = row.best_scene || {};
-    const tags = [...new Set([...(row.tags || []), ...(scene.tags || [])])];
-    const characters = (row.characters || scene.chars || []).map((name, index) => ({
-      n: name,
-      r: index === 0 ? "角色" : "相关角色",
-      c: [...name],
-      k: "",
-    }));
+    const matchedTags = [...new Set(row.matched_tags || [])];
     return {
       id: `cloud-${row.id}`,
       t: row.title,
@@ -46,12 +42,12 @@
       au: row.author || "作者未知",
       g: row.genre || "未分类",
       s: row.sub_genre || "待细分",
-      y: row.year_min || 0,
-      p: row.platform || "来源待补",
+      y: row.year_min || null,
+      p: row.platform || "来源未标注",
       w: Math.round((row.word_count || 0) / 10000),
       end: row.ending || "未知",
       st: "",
-      ch: characters,
+      ch: [],
       wt: row.world_tags || [],
       hi: row.female_roles || [],
       ho: row.male_roles || [],
@@ -71,7 +67,7 @@
       f: 0,
       cl: "",
       _remote: true,
-      _tags: tags,
+      _tags: matchedTags,
       _matched: row.matched || {},
     };
   }
@@ -149,7 +145,8 @@
       p_rel: (SEL.rel || [])[0] || "",
       p_plot: (SEL.plot || [])[0] || "",
       p_mood: (SEL.mood || [])[0] || "",
-      p_tags: [...new Set([...selFlat(), ...inferred])],
+      p_tags: [...new Set(selFlat())],
+      p_inferred: [...new Set(inferred)],
       p_fem: o.fem || "",
       p_male: o.male || "",
       p_other: o.other || "",
@@ -166,6 +163,7 @@
       ST.genre = o.main || null;
       ST.ending = null;
       ST.cands = (rows || []).map(remoteResult);
+      BOOKS = ST.cands.map((item) => item.b);
       renderRes(q, inferred, selFlat());
       document.getElementById("resMeta").textContent =
         `已填 ${used.length} 项 · ${ST.cands.length ? "按云端证据排序" : "没有足够接近的结果"}`;
@@ -177,6 +175,87 @@
       renderRes(q, inferred, selFlat());
       cloudStatus.textContent = "云端检索失败，请稍后重试";
     }
+  };
+
+  window.excludeBook = function excludeCloudBook(id) {
+    ST.cands = ST.cands.filter((item) => item.b.id !== id);
+    BOOKS = ST.cands.map((item) => item.b);
+    const o = collectForm();
+    const q = [o.scene, o.fem, o.male, o.other, o.call, o.mark, o.terms]
+      .filter(Boolean)
+      .join(" ");
+    renderRes(q, inferTags(q), selFlat());
+    document.getElementById("resMeta").textContent =
+      `已排除一本 · 剩余 ${ST.cands.length} 个候选`;
+  };
+
+  window.openDrawer = function openCloudDrawer(id) {
+    const book = BOOKS.find((item) => item.id === id);
+    if (!book) return;
+    const panel = document.getElementById("dpanel");
+    const drawer = document.getElementById("drawer");
+    if (!panel || !drawer) return;
+    const kv = (key, value) =>
+      `<div class="kv"><div class="k">${key}</div><div class="v">${value}</div></div>`;
+    const tags = (values) =>
+      values && values.length
+        ? values.map((value) => `<span class="tag">${esc(value)}</span>`).join("")
+        : '<span style="color:var(--ink3)">未标注</span>';
+    const aliases = (book.a || []).length ? tags(book.a) : "暂无";
+    const scene = (book.sc || [])[0];
+    panel.innerHTML = `
+      <button class="dclose" onclick="closeDrawer()">×</button>
+      <h2>《${esc(book.t)}》</h2>
+      <div class="dm">${esc(book.au)} · ${esc(book.g)} / ${esc(book.s)} · ${yearLabel(book.y)} · ${esc(book.p)}</div>
+      <div class="sec-t">A 书元信息</div>
+      ${kv("现用书名", esc(book.t))}
+      ${kv("曾用名", aliases)}
+      ${kv("作者", esc(book.au))}
+      ${book.w ? kv("总字数", `${book.w} 万字`) : ""}
+      ${book.y ? kv("发文年份", `${book.y}（弱证据）`) : ""}
+      ${book.p && book.p !== "来源未标注" ? kv("平台 / 来源", esc(book.p)) : ""}
+      <div class="sec-t">B 题材与命中标签</div>
+      ${kv("主类型", esc(book.g))}
+      ${book.s && book.s !== "待细分" ? kv("二级子类", esc(book.s)) : ""}
+      ${kv("本次命中", tags(book._tags))}
+      ${
+        scene
+          ? `<div class="sec-t">C 原文桥段</div>
+             <div class="sc"><p>${esc(scene.t)}</p><div class="st"><span class="tag">${esc(scene.po)}</span></div></div>`
+          : ""
+      }
+      <div class="note">详情只展示云端已有且可用于判断的字段；缺失的作者年份、结局等信息不会伪造。</div>`;
+    drawer.classList.add("on");
+  };
+
+  window.quickFilter = async function quickFilterCloud(kind, value) {
+    if (kind === "ending") {
+      alert("当前样品库还没有可靠的结局标注，请改用情节或人物线索。");
+      return;
+    }
+    document
+      .querySelectorAll('[data-g="main"]')
+      .forEach((chip) => chip.classList.remove("on"));
+    const chip = [...document.querySelectorAll('[data-g="main"]')].find(
+      (item) => item.dataset.v === value,
+    );
+    if (chip) chip.classList.add("on");
+    await window.searchByForm();
+  };
+
+  window.hq = function renderCloudFollowUp() {
+    const extra = document.getElementById("resExtra");
+    if (!extra) return;
+    extra.innerHTML = `
+      <div class="sl" style="margin-bottom:8px">再补一条更具体的情节或人物线索</div>
+      <div class="chips">
+        <button class="sg" onclick="document.getElementById('f_scene').focus()">补情节</button>
+        <button class="sg" onclick="document.getElementById('f_other').focus()">补配角名</button>
+        <button class="sg" onclick="document.getElementById('f_terms').focus()">补专有名词</button>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn2" onclick="openPostFromQuery()">都不对，发寻书帖</button>
+      </div>`;
   };
 
   async function loadPosts() {

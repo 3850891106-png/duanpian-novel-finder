@@ -618,8 +618,10 @@ function overlap(a,b){
 }
 const STMAP = {'甜':'甜宠','虐':'虐恋情深','爽':'爽文','冷':'冷峻','暖':'温暖'};
 function bookTags(b){
+  if(b._tags) return b._tags;
   return [].concat([b.g,b.s],b.wt||[],b.hi||[],b.ho||[],b.rl||[],(b.st?[STMAP[b.st]||b.st]:[]),b.sc.map(s=>s.ta).flat());
 }
+function yearLabel(value){ return value ? value+' 年' : '年份不详'; }
 function tagHit(x,y){
   if(!x||!y) return false;
   if(x===y) return true;
@@ -748,7 +750,7 @@ function card(b,r,i){
       <div class="ring" style="--p:${r.pct}"><i></i><span>${r.pct}%</span></div>
       <div class="bkt">
         <h3 class="serif">《${esc(b.t)}》</h3>
-        <div class="m">${esc(b.au)} · ${esc(b.g)}/${esc(b.s)} · ${b.y} · ${esc(b.p)}${b.a&&b.a.length?' · 原名《'+esc(b.a[0])+'》':''}</div>
+        <div class="m">${esc(b.au)} · ${esc(b.g)}/${esc(b.s)} · ${yearLabel(b.y)} · ${esc(b.p)}${b.a&&b.a.length?' · 原名《'+esc(b.a[0])+'》':''}</div>
         <div class="tags">${tagHtml}</div>
       </div>
     </div>
@@ -798,9 +800,9 @@ function openDrawer(id){
   const tg=arr=>(arr&&arr.length)?arr.map(t=>`<span class="tag">${esc(t)}</span>`).join(''):'<span style="color:var(--ink3)">暂无</span>';
   let html=`<button class="dclose" onclick="closeDrawer()">×</button>
     <h2>《${esc(b.t)}》</h2>
-    <div class="dm">${esc(b.au)} · ${esc(b.g)} / ${esc(b.s)} · ${b.y} 年 · ${esc(b.p)}</div>
+    <div class="dm">${esc(b.au)} · ${esc(b.g)} / ${esc(b.s)} · ${yearLabel(b.y)} · ${esc(b.p)}</div>
     <div class="sec-t">A 书元信息</div>
-    ${kv('现用书名',esc(b.t))}${kv('曾用名',tg(b.a))}${kv('作者',esc(b.au))}${kv('总字数',b.w+' 万字')}${kv('平台',esc(b.p))}${kv('发文年份',b.y+'（弱证据，可能±3年）')}${kv('封面主色',esc(b.cv))}${kv('置信度','0.88 · 来源：人工录入 + txt核验')}
+    ${kv('现用书名',esc(b.t))}${kv('曾用名',tg(b.a))}${kv('作者',esc(b.au))}${kv('总字数',b.w+' 万字')}${kv('平台',esc(b.p))}${kv('发文年份',b.y ? b.y+'（弱证据，可能±3年）' : '未标注')}${kv('封面主色',esc(b.cv||'暂无'))}${kv('置信度',b._remote?'基于云端原文与标签命中':'0.88 · 来源：人工录入 + txt核验')}
     <div class="sec-t">B 题材</div>
     ${kv('主类型',esc(b.g))}${kv('二级子类',esc(b.s))}${kv('设定标签',tg(b.wt))}
     <div class="sec-t">C 人物</div>
