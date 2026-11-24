@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>断片寻书 · 检索前端</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --paper:#FAF7F1;--paper2:#F1ECE2;--ink:#23262B;--ink2:#4E5459;--ink3:#8A8F94;
+  --line:#DCD5C7;--green:#2C5B4C;--greens:#E4EDE7;--red:#C0452C;--card:#FFF;
+  --sh:0 1px 2px rgba(35,38,43,.05),0 10px 28px rgba(35,38,43,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;background:var(--paper);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
+.serif{font-family:'Noto Serif SC','Songti SC',serif}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(250,247,241,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.tin{max-width:1080px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand h1{font-size:19px;font-weight:700;letter-spacing:.05em}
+.brand .sub{font-size:11px;color:var(--ink3);letter-spacing:.13em}
+.brand{flex:0 0 auto}
+.nav{display:flex;gap:4px;background:var(--paper2);padding:4px;border-radius:10px;flex:1 1 auto;max-width:460px;justify-content:stretch}
+.nav button{flex:1 1 0;min-width:0;white-space:nowrap;border:0;background:transparent;font-family:inherit;font-size:13px;color:var(--ink2);padding:8px 10px;border-radius:7px;cursor:pointer;transition:.16s;text-align:center}
+/* 手机上导航铺满整行，四等分，右侧不留空 */
+@media(max-width:680px){
+  .tin{padding:11px 15px 10px;gap:9px}
+  .brand{flex:1 1 100%}
+  .nav{flex:1 1 100%;max-width:none;margin-top:1px}
+  .nav button{padding:9px 4px;font-size:12.5px}
+}
+.nav button.on{background:var(--card);color:var(--ink);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 20px 80px}
+.view{display:none}
+.view.on{display:block}
+
+.searchcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--sh)}
+.sl{font-size:12px;color:var(--ink3);letter-spacing:.1em;margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;font-family:inherit;font-size:13px;color:var(--ink2);padding:7px 14px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--green);color:var(--green)}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.qrow{display:flex;gap:9px;margin-top:16px}
+.qrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14.5px;background:var(--paper);outline:none}
+.qrow input:focus{border-color:var(--green);background:#fff}
+.btn{border:0;background:var(--ink);color:#fff;border-radius:11px;padding:0 22px;font-family:inherit;font-size:14px;cursor:pointer;transition:.15s}
+.btn:hover{background:#000}
+.btn2{border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:10px;padding:9px 15px;font-family:inherit;font-size:13px;cursor:pointer}
+.btn2:hover{border-color:var(--green);color:var(--green)}
+.suggest{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.sg{font-size:12px;background:var(--greens);color:var(--green);border:0;border-radius:6px;padding:5px 10px;cursor:pointer;font-family:inherit}
+.adv{margin-top:14px;display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:760px){.adv{grid-template-columns:repeat(3,1fr)}}
+.adv fieldset{border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+.adv legend{font-size:11.5px;color:var(--ink3);padding:0 5px}
+.adv .chips .chip{font-size:12px;padding:5px 11px}
+
+.restop{display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px;gap:10px;flex-wrap:wrap}
+.restop h2{font-size:16px;font-weight:700}
+.restop .meta{font-size:12.5px;color:var(--ink3)}
+.list{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.list{grid-template-columns:1fr 1fr}}
+.bk{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;transition:.18s}
+.bk:hover{box-shadow:var(--sh);border-color:#CFC6B4}
+.bkh{display:flex;gap:12px;align-items:flex-start}
+.ring{flex:0 0 50px;height:50px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--paper2)}
+.ring i{position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--green) calc(var(--p)*1%),#EAE4D6 0);-webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%)}
+.ring span{position:relative;z-index:1;font-size:13px;font-weight:700;color:var(--green)}
+.bkt{flex:1;min-width:0}
+.bkt h3{font-size:16.5px;font-weight:700;margin-bottom:3px}
+.bkt .m{font-size:12px;color:var(--ink3)}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tag{font-size:11.5px;background:var(--paper2);border-radius:5px;padding:2px 7px;color:var(--ink2)}
+.tag.hit{background:var(--greens);color:var(--green);font-weight:500}
+.scene{font-size:12.5px;color:var(--ink2);background:#F8F5EC;border-left:2px solid var(--green);padding:7px 10px;border-radius:0 6px 6px 0;margin-top:10px;line-height:1.65}
+.scene b{color:var(--green);font-weight:600}
+.bka{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.mini{border:1px solid var(--line);background:var(--card);border-radius:8px;font-family:inherit;font-size:12.5px;padding:6px 12px;cursor:pointer;color:var(--ink2)}
+.mini:hover{border-color:var(--green);color:var(--green)}
+.mini.yes{background:var(--green);border-color:var(--green);color:#fff}
+.score{margin-top:12px;display:none;border-top:1px dashed var(--line);padding-top:10px}
+.score.on{display:block}
+.score table{width:100%;border-collapse:collapse;font-size:12px}
+.score td{padding:3px 0;color:var(--ink2)}
+.score td:last-child{text-align:right;color:var(--green);font-weight:600;white-space:nowrap}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;color:var(--ink2);font-size:13.5px}
+
+.drawer{position:fixed;inset:0;background:rgba(20,22,24,.34);display:none;z-index:60}
+.drawer.on{display:block}
+.dpanel{position:absolute;right:0;top:0;bottom:0;width:min(460px,94vw);background:var(--paper);overflow-y:auto;padding:22px 20px 40px;box-shadow:-8px 0 30px rgba(0,0,0,.14)}
+.dclose{position:sticky;top:0;float:right;border:0;background:var(--ink);color:#fff;width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;font-family:inherit}
+.dpanel h2{font-size:20px;font-weight:900;font-family:'Noto Serif SC',serif;margin-bottom:4px}
+.dpanel .dm{font-size:12.5px;color:var(--ink3);margin-bottom:18px}
+.kv{border-top:1px solid var(--line);padding:9px 0;display:flex;gap:12px;font-size:13px}
+.kv .k{flex:0 0 84px;color:var(--ink3)}
+.kv .v{flex:1;color:var(--ink);word-break:break-word}
+.v .tag{display:inline-block;margin:0 4px 4px 0}
+.sec-t{font-size:12px;color:var(--red);letter-spacing:.14em;font-weight:700;margin:22px 0 8px}
+.sc{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:11px 12px;margin-bottom:9px}
+.sc p{font-size:12.5px;color:var(--ink2);line-height:1.7}
+.sc .st{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.sc .st .tag{background:var(--greens);color:var(--green)}
+
+.excard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--sh)}
+.excard textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:11px;padding:13px;font-family:inherit;font-size:14px;line-height:1.75;background:var(--paper);outline:none;resize:vertical}
+.excard textarea:focus{border-color:var(--green);background:#fff}
+.exbar{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.exhint{font-size:12px;color:var(--ink3)}
+.fgrid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
+@media(min-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
+.fbox{border:1px solid var(--line);border-radius:11px;background:var(--paper);padding:12px}
+.fbox .ft{font-size:11.5px;color:var(--ink3);letter-spacing:.06em;margin-bottom:7px}
+.jsonbox{margin-top:16px;border:1px solid var(--line);border-radius:11px;background:#FDFBF6;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--ink2);max-height:340px;overflow:auto}
+.note{margin-top:14px;font-size:12px;color:var(--ink3);line-height:1.8;border-top:1px dashed var(--line);padding-top:12px}
+.herottl{font-size:clamp(23px,6.8vw,35px);font-weight:900;line-height:1.34;letter-spacing:.01em;margin:0;word-break:keep-all;overflow-wrap:normal}
+.herottl .nw{white-space:nowrap}
+.herottl i{font-style:normal;color:var(--red)}
+.fin{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;min-height:44px;font-family:inherit;font-size:14px;line-height:1.6;background:var(--paper);outline:none;box-sizing:border-box}
+.fin:focus{border-color:var(--green);background:#fff}
+
+.picker{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.pkh{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;font-family:inherit;padding:15px;cursor:pointer;text-align:left}
+.pkh:hover{background:var(--paper)}
+.pkt{flex:1;font-size:13.5px;font-weight:600;color:var(--ink)}
+.pkt em{font-style:normal;font-weight:400;color:var(--ink3);font-size:12px}
+.pkv{font-size:12px;color:var(--green);max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkv.none{color:var(--ink3)}
+.pkarrow{font-size:12px;color:var(--ink3);transition:.2s}
+.pkb{display:none;padding:0 15px 15px}
+.pkb.on{display:block}
+.picker.open .pkarrow{transform:rotate(180deg)}
+.btn.big{width:100%;padding:17px 20px;font-size:17px;font-weight:800;letter-spacing:.06em;border-radius:12px;box-shadow:0 6px 18px rgba(47,93,80,.22)}
+.exbar{margin-top:14px}
+.morebtn{width:100%;margin-top:12px;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;text-align:left}
+.morebtn:hover{border-color:var(--green)}
+.morebtn span:first-child{flex:1}
+.mbadge{min-width:22px;height:22px;border-radius:11px;background:var(--green);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+.mbadge.zero{background:var(--paper2);color:var(--ink3)}
+.marrow{color:var(--ink3);font-size:13px}
+.sug{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:9px}
+.sugt{font-size:11.5px;color:var(--ink3)}
+.sugc{background:#EFF4F0;border-color:#CBE0D3;color:var(--green);font-size:12px;padding:5px 10px}
+.fdw{position:fixed;inset:0;background:rgba(28,26,22,.42);display:none;z-index:60;align-items:flex-end;justify-content:center}
+.fdw.on{display:flex}
+.fdwbox{width:100%;max-width:620px;background:var(--paper);border-radius:16px 16px 0 0;display:flex;flex-direction:column;max-height:88vh;box-shadow:0 -12px 40px rgba(0,0,0,.18)}
+.fdwh{display:flex;align-items:center;gap:10px;padding:15px 16px 10px;border-bottom:1px solid var(--line)}
+.fdwh>span:first-child{font-size:15px;font-weight:800;flex:1}
+.fdwn{font-size:12px;color:var(--ink3)}
+.fdwx{border:0;background:none;font-size:22px;line-height:1;color:var(--ink3);cursor:pointer;padding:0 2px}
+.fdws{padding:10px 16px 0}
+.fdwbody{overflow:auto;padding:12px 16px 16px;flex:1}
+.fdwfoot{padding:12px 16px 18px;border-top:1px solid var(--line);background:var(--paper)}
+.fdwfoot .btn{width:100%;padding:15px;font-size:15.5px;font-weight:800}
+.fsec{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:11px 12px;margin-bottom:10px}
+.fsect{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.fsect>span{font-size:12.5px;font-weight:700;color:var(--ink)}
+.fsect em{font-style:normal;font-size:11px;color:var(--green);flex:1}
+.fsect b{font-size:11px;color:var(--ink3);font-weight:400;cursor:pointer}
+.fmore{margin-top:8px;border:0;background:none;font-family:inherit;font-size:11.5px;color:var(--green);cursor:pointer;padding:0}
+.fsel{border:1px dashed var(--green);border-radius:12px;background:#F4F9F6;padding:11px 12px;margin-bottom:10px}
+.fselt{font-size:11.5px;color:var(--green);font-weight:700;margin-bottom:7px}
+.onlyowner{font-size:11.5px;color:var(--ink3);border:1px dashed var(--line);border-radius:999px;padding:5px 11px;align-self:center}
+.ne{display:none;margin-top:10px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:var(--paper)}
+.ne.on{display:block}
+textarea.commbox{width:100%;box-sizing:border-box;min-height:180px;border:1px solid var(--line);border-radius:11px;padding:14px 15px;font-family:inherit;font-size:14.5px;line-height:1.9;background:var(--paper);outline:none;resize:vertical}
+textarea.commbox:focus{border-color:var(--green);background:#fff}
+textarea.fin{min-height:140px;line-height:1.85;resize:vertical;font-size:14.5px;padding:12px 14px}
+.foot{text-align:center;font-size:11.5px;color:var(--ink3);padding:44px 0 6px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="tin">
+    <div class="brand">
+      <h1 class="serif">拾页</h1>
+      <span class="sub">忘了书名，也别弄丢那本书</span>
+    </div>
+    <div class="nav">
+      <button id="n-search" class="on" onclick="go('search')">找书</button>
+      <button id="n-res" onclick="go('res')">候选</button>
+      <button id="n-comm" onclick="go('comm')">互助</button>
+      <button id="n-wall" onclick="go('wall')">找回墙</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+<!-- 找书页合并进表单：见 p2h_form1.html -->
+<!-- ===== 视图：候选 ===== -->
+<section class="view" id="view-res">
+  <div class="restop" style="margin-top:26px">
+    <h2 id="resTitle">候选结果</h2>
+    <span class="meta" id="resMeta"></span>
+  </div>
+  <div id="resList" class="list"></div>
+  <div id="resExtra" style="margin-top:18px"></div>
+</section>
+<!-- ===== 视图：互助 ===== -->
+<section class="view" id="view-comm">
+  <div class="restop" style="margin-top:26px">
+    <h2>一起找书</h2>
+    <span class="meta">一个人的模糊记忆，可能正是另一个人读过的故事</span>
+  </div>
+
+  <div class="searchcard">
+    <div class="sl">搜索没结果时，把线索留在这里</div>
+    <textarea id="postText" class="commbox" rows="7" placeholder="写下你记得的碎片：类型、人物、名场面、在哪看的…&#10;写得越细，别人越容易帮你认出来。"></textarea>
+    <div class="exbar">
+      <button class="btn big" onclick="addPost()">发布寻书帖</button>
+    </div>
+    <div class="chips" id="postTags" style="margin-top:12px"></div>
+    <div class="note">发布后可被其他读者提供线索、标记已找到；原型数据只存在你自己的浏览器里。</div>
+  </div>
+
+  <div class="restop"><h2>寻书帖</h2><span class="meta" id="postCount"></span></div>
+  <div class="list" id="postList"></div>
+</section>
+<!-- ===== 视图：找回墙 ===== -->
+<section class="view" id="view-wall">
+  <div class="restop" style="margin-top:26px">
+    <h2>有些书，正被人重新想起</h2>
+    <span class="meta">线索 → 候选 → 确认，每一步都留下证据</span>
+  </div>
+  <div class="list" id="wallList"></div>
+</section>
+<!-- 信息提取页已下线（该功能属于后台上架流程，不给读者看） -->
+<!-- ===== 视图：找书（字段填写即检索） ===== -->
+<section class="view on" id="view-search">
+  <div style="padding:30px 0 18px">
+    <h1 class="serif herottl">用碎片，<span class="nw">把故事找回来<i>。</i></span></h1>
+    <p style="color:var(--ink2);font-size:14px;margin-top:9px;max-width:640px;line-height:1.8">
+      记得什么就填什么，不填的自动跳过。写得越具体，找得越准。
+    </p>
+  </div>
+
+  <div class="searchcard">
+    <div class="sl">你还记得的那段故事</div>
+    <textarea class="fin" id="f_scene" rows="4" placeholder="例如：大婚那天他当众掀了她的盖头，说要娶她的侍女，她穿着嫁衣站在雪地里，等来一句对不起。"></textarea>
+    <div class="sug" id="sugRow"></div>
+  </div>
+
+  <div class="searchcard" style="margin-top:12px">
+    <div class="sl">主类型 · 先选它，范围一下小很多</div>
+    <div class="chips" id="g_main"></div>
+  </div>
+
+  <div class="searchcard" style="margin-top:12px">
+    <div class="sl">人物 · 记得一个字就能填</div>
+    <div class="fgrid">
+      <div class="fbox"><div class="ft">女主名（全名或一个字）</div><input class="fin" id="f_fem" placeholder="例如：小枫，或 枫"></div>
+      <div class="fbox"><div class="ft">男主名（全名或一个字）</div><input class="fin" id="f_male" placeholder="例如：李承鄞，或 鄞"></div>
+      <div class="fbox"><div class="ft">其他角色 / 外号</div><input class="fin" id="f_other" placeholder="例如：闷油瓶、摄政王"></div>
+      <div class="fbox"><div class="ft">角色互称</div><input class="fin" id="f_call" placeholder="例如：他喊她“阿晚”"></div>
+    </div>
+  </div>
+<!-- 续 E + F + 筛选抽屉 -->
+  <div class="searchcard" style="margin-top:12px">
+    <div class="sl">标志物 · 区分度最高，记得就填</div>
+    <div class="fgrid">
+      <div class="fbox"><div class="ft">信物 / 道具</div><input class="fin" id="f_mark" placeholder="例如：断剑、玉镯、胎记、黑甲"></div>
+      <div class="fbox"><div class="ft">专有名词</div><input class="fin" id="f_terms" placeholder="例如：青云门、破军、天窗"></div>
+      <div class="fbox"><div class="ft">大概哪年看的</div><input class="fin" id="f_year" placeholder="例如：2012"></div>
+      <div class="fbox"><div class="ft">书名大概几个字</div><input class="fin" id="f_titlelen" placeholder="例如：4"></div>
+      <div class="fbox" style="grid-column:1/-1"><div class="ft">在哪看的 / 信息来源</div><input class="fin" id="f_source" placeholder="例如：企鹅小说 / 实体书 / 我自己记得"></div>
+    </div>
+  </div>
+
+  <button class="morebtn" onclick="openFilterDrawer()">
+    <span>更多条件 · 设定 / 时代 / 身份 / 桥段</span>
+    <span class="mbadge" id="moreCount">0</span>
+    <span class="marrow">›</span>
+  </button>
+
+  <div class="searchcard" style="margin-top:12px">
+    <div class="exbar">
+      <button class="btn big" onclick="searchByForm()">开始找书</button>
+      <button class="btn2" onclick="clearForm()" style="padding:13px 18px">清空</button>
+      <button class="btn2" onclick="formToPost()" style="padding:13px 18px">都不对，发寻书帖</button>
+    </div>
+    <div class="note" id="f_count">已填 0 项（没填的条件不会限制结果）</div>
+  </div>
+  <div id="kpis" class="fgrid" style="margin-top:14px"></div>
+  <div id="stat" style="text-align:center;font-size:12px;color:var(--ink3);margin-top:16px"></div>
+
+  <!-- 筛选抽屉 -->
+  <div class="fdw" id="fdw">
+    <div class="fdwbox">
+      <div class="fdwh">
+        <span>更多条件</span>
+        <span class="fdwn" id="fdwNum">0 项已选</span>
+        <button class="fdwx" onclick="closeFilterDrawer()">×</button>
+      </div>
+      <div class="fdws">
+        <input class="fin" id="fdwSearch" oninput="filterDrawer(this.value)" placeholder="搜标签：茅山、丧尸、晶核、破军、鲛人…">
+      </div>
+      <div class="fdwbody" id="fdwBody"></div>
+      <div class="fdwfoot">
+        <button class="btn" onclick="applyDrawer()">用这些条件去找</button>
+      </div>
+    </div>
+  </div>
+</section>
+</div><!-- /wrap -->
+
+<!-- 详情抽屉 -->
+<div class="drawer" id="drawer" onclick="if(event.target===this)closeDrawer()">
+  <div class="dpanel" id="dpanel"></div>
+</div>
+
+<script src="./config.js"></script>
+<script>
+let BOOKS = [
+{id:'b01',t:'黑莲花攻略手册',a:['黑莲花攻略'],au:'白羽摘雕弓',g:'古言',s:'穿书',y:2021,p:'晋江',w:260,end:'HE',st:'甜',
+ ch:[{n:'凌妙妙',r:'女主',c:['凌','妙'],k:''},{n:'慕声',r:'男主',c:['慕','声'],k:'病娇少主'}],
+ wt:['穿书','系统流','攻略系统'],hi:['少女','学生'],ho:['少主','病娇'],rl:['攻略任务','甜宠'],
+ sc:[{t:'她睁开眼，发现自己穿进了刚看完的小说里，脑子里响起一个声音：欢迎绑定捉妖系统，完成全部任务才能回去。',ta:['穿书','系统绑定'],po:'第1章',w:.95},
+     {t:'少年把她按在墙上，语气很轻：你要是敢走，我就把你绑在身边一辈子。',ta:['男主病娇','强留'],po:'第18章',w:.85}],
+ q:['你要是敢走，我就把你绑在身边一辈子。'],cv:'深蓝',f:41,
+ cl:'只记得女主穿进书里、脑袋里有个系统，还要跟着一群人捉妖。'},
+
+{id:'b02',t:'长月烬明',a:['黑月光拿稳BE剧本'],au:'藤萝为枝',g:'仙侠',s:'虐恋',y:2020,p:'晋江',w:300,end:'BE',st:'虐',
+ ch:[{n:'黎苏苏',r:'女主',c:['黎','苏'],k:''},{n:'澹台烬',r:'男主',c:['澹','烬'],k:'魔尊'}],
+ wt:['穿书','身份互换'],hi:['神女','修士'],ho:['魔尊','帝王'],rl:['虐恋情深','女主救男主'],
+ sc:[{t:'她亲手把灭魂钉钉进他心口，血溅在她脸上，他还在笑：你终于肯杀我了。',ta:['灭魂钉','亲手弑夫'],po:'第60章',w:.9},
+     {t:'她醒来时发现回到了五百年前，那个将来会成为魔神的少年，此刻还只是个瘦弱的质子。',ta:['重生回过去','质子'],po:'第1章',w:.9}],
+ q:['你终于肯杀我了。'],cv:'暗红',f:26,
+ cl:'标题好像改过，以前叫什么黑月光，女主回去阻止男主成魔。'},
+
+{id:'b03',t:'偷偷藏不住',a:[],au:'竹已',g:'现言',s:'校园',y:2020,p:'晋江',w:100,end:'HE',st:'甜',
+ ch:[{n:'桑稚',r:'女主',c:['桑','稚'],k:''},{n:'段嘉许',r:'男主',c:['段','嘉','许'],k:'哥哥的朋友'}],
+ wt:[],hi:['学生','少女'],ho:['大学生','哥哥的朋友'],rl:['暗恋成真','年龄差'],
+ sc:[{t:'她把写满名字的纸条藏在课本最后一页，被同桌翻出来的时候，脸红得说不出话。',ta:['暗恋日记','被发现'],po:'第12章',w:.85},
+     {t:'很多年后他才知道，那个总是躲着他的小姑娘，从十三岁就开始喜欢他了。',ta:['多年后坦白','暗恋成真'],po:'第40章',w:.9}],
+ q:['哥哥的朋友，能不能只喜欢我。'],cv:'浅粉',f:73,
+ cl:'女主喜欢哥哥的朋友，男生叫段嘉许，过了很多年才在一起。'},
+
+{id:'b04',t:'东宫',a:['忘川'],au:'匪我思存',g:'古言',s:'宫斗',y:2010,p:'晋江',w:60,end:'BE',st:'虐',
+ ch:[{n:'曲小枫',r:'女主',c:['曲','枫'],k:'西州九公主'},{n:'李承鄞',r:'男主',c:['李','承','鄞'],k:'太子'}],
+ wt:['失忆'],hi:['公主','和亲'],ho:['太子','皇子'],rl:['虐恋情深','国仇家恨'],
+ sc:[{t:'大婚那日，他当着满朝文武掀了她的盖头，说要娶的是她身边的侍女。',ta:['大婚退婚','当众受辱'],po:'第18章',w:.9},
+     {t:'她跳下忘川，水漫过眼睛的最后一刻，听见他在岸上喊她的名字。',ta:['跳崖','失忆'],po:'第42章',w:.95}],
+ q:['我这一生，只输给一个人。'],cv:'雪白',f:58,
+ cl:'古言，女主跳崖后失忆，男主是太子，最后女主自刎。'},
+
+{id:'b05',t:'何以笙箫默',a:[],au:'顾漫',g:'现言',s:'都市',y:2005,p:'晋江',w:40,end:'HE',st:'甜',
+ ch:[{n:'赵默笙',r:'女主',c:['赵','默'],k:''},{n:'何以琛',r:'男主',c:['何','以','琛'],k:'律师'}],
+ wt:[],hi:['学生','摄影师'],ho:['律师','精英'],rl:['破镜重圆','多年重逢'],
+ sc:[{t:'七年后在法院门口重逢，他看着她，一句多余的话都没有，只问：还走吗？',ta:['多年重逢','破镜重圆'],po:'第10章',w:.9},
+     {t:'她把婚戒推回去，说我们不合适，他沉默了很久，只说了一句：我等你七年了。',ta:['拒婚','坦白'],po:'第28章',w:.85}],
+ q:['我等你七年了。'],cv:'米白',f:35,
+ cl:'大学恋人分开七年，重逢后又在一起，男主是律师。'},
+
+{id:'b06',t:'微微一笑很倾城',a:[],au:'顾漫',g:'现言',s:'校园',y:2008,p:'晋江',w:50,end:'HE',st:'甜',
+ ch:[{n:'贝微微',r:'女主',c:['贝','微'],k:''},{n:'肖奈',r:'男主',c:['肖','奈'],k:'校草'}],
+ wt:['网游'],hi:['学生','游戏高手'],ho:['学生','校草'],rl:['双向奔赴','甜宠'],
+ sc:[{t:'游戏里第一次见面，她在城门口被一群人围堵，他骑着白马过来，一剑把人清空。',ta:['网游结婚','英雄救美'],po:'第5章',w:.85},
+     {t:'线下见面那天她才知道，游戏里的夫君，是全校都知道的那个学长。',ta:['线下相见','身份揭晓'],po:'第15章',w:.9}],
+ q:['微微，过来。'],cv:'天蓝',f:44,
+ cl:'网游里结婚，现实是同一个学校，特别甜。'},
+
+{id:'b07',t:'三生三世十里桃花',a:[],au:'唐七',g:'仙侠',s:'仙侠恋爱',y:2009,p:'晋江',w:80,end:'HE',st:'虐',
+ ch:[{n:'白浅',r:'女主',c:['白','浅'],k:'青丘女君'},{n:'夜华',r:'男主',c:['夜','华'],k:'天族太子'}],
+ wt:['转世情劫','失忆'],hi:['女君','上神'],ho:['太子','上神'],rl:['三生三世','虐恋情深'],
+ sc:[{t:'她纵身跳下诛仙台，风在耳边响，她想：这一世总算可以结束了。',ta:['跳诛仙台','自尽'],po:'第30章',w:.95},
+     {t:'她喝了忘情水，醒来时什么都不记得，只看见一个男人跪在床边握着她的手。',ta:['失忆','忘情水'],po:'第45章',w:.85}],
+ q:['你若敢死，我便屠尽这四海八荒。'],cv:'月白',f:62,
+ cl:'仙侠，女主跳诛仙台，三生三世，最后在一起了。'},
+
+{id:'b08',t:'甄嬛传',a:['后宫甄嬛传'],au:'流潋紫',g:'古言',s:'宫斗',y:2007,p:'晋江',w:150,end:'开放式',st:'虐',
+ ch:[{n:'甄嬛',r:'女主',c:['甄','嬛'],k:'熹贵妃'},{n:'玄凌',r:'男主',c:['玄','凌'],k:'皇帝'}],
+ wt:[],hi:['妃嫔','秀女'],ho:['皇帝'],rl:['宫廷争斗','爱而不得'],
+ sc:[{t:'她被抬进碎玉轩的那天，只带了一只旧箱子，里面是母亲缝的衣裳。',ta:['选秀入宫','入宫'],po:'第6章',w:.8},
+     {t:'孩子没了的那一夜，她跪在殿外，雪落在肩上，一句话都没说。',ta:['麝香滑胎','失子'],po:'第38章',w:.9}],
+ q:['这宫里，容不下真心。'],cv:'朱红',f:51,
+ cl:'宫斗，女主从秀女一路做到贵妃，孩子被算计掉了。'},
+
+{id:'b09',t:'楚乔传',a:['11处特工皇妃'],au:'潇湘冬儿',g:'古言',s:'女强争霸',y:2011,p:'潇湘',w:200,end:'HE',st:'爽',
+ ch:[{n:'楚乔',r:'女主',c:['楚','乔'],k:'星儿'},{n:'宇文玥',r:'男主',c:['宇','文','玥'],k:'公子'}],
+ wt:['穿越'],hi:['奴隶','女将'],ho:['世家公子','将军'],rl:['并肩作战','双向奔赴'],
+ sc:[{t:'她被人按在雪地里，听见有人问：这个奴隶多少钱。她抬起头，眼里没有一点怕。',ta:['奴隶出身','当众受辱'],po:'第2章',w:.9},
+     {t:'城破那日，她披甲站在城头，身后只剩三百人，她说：跟我走的人，我保你们活着。',ta:['军中立威','城破'],po:'第70章',w:.9}],
+ q:['我命由我，不由天。'],cv:'墨黑',f:39,
+ cl:'古代，女主从奴隶变成将军，男主是世家公子。'},
+
+{id:'b10',t:'盗墓笔记',a:[],au:'南派三叔',g:'悬疑',s:'盗墓探险',y:2007,p:'起点',w:400,end:'开放式',st:'冷',
+ ch:[{n:'吴邪',r:'男主',c:['吴','邪'],k:'小三爷'},{n:'张起灵',r:'配角',c:['张','起','灵'],k:'闷油瓶'}],
+ wt:[],hi:['古董店老板'],ho:['盗墓者','神秘人'],rl:[],
+ sc:[{t:'那具棺材里的尸体，脸上贴着一张纸，纸上写着他自己的名字。',ta:['诡异尸体','名字'],po:'第12章',w:.9},
+     {t:'闷油瓶站在墓道尽头，血从手腕滴下来，他说：别过来，这里的东西醒了。',ta:['血尸','守墓'],po:'第30章',w:.9}],
+ q:['有些事，知道了就回不去了。'],cv:'墨绿',f:66,
+ cl:'盗墓，一个姓吴的和一个特别厉害的张姓男人一起下墓。'},
+];
+
+BOOKS.push(...[
+{id:'b11',t:'鬼吹灯',a:['鬼吹灯之精绝古城'],au:'天下霸唱',g:'悬疑',s:'盗墓探险',y:2006,p:'起点',w:300,end:'开放式',st:'冷',
+ ch:[{n:'胡八一',r:'男主',c:['胡','八'],k:'老胡'},{n:'shirley杨',r:'女主',c:['杨'],k:'杨小姐'}],
+ wt:[],hi:['华侨','探险者'],ho:['退伍军人','摸金校尉'],rl:['并肩作战'],
+ sc:[{t:'他拿着罗盘站在沙漠里，指针疯狂转动，最后指向脚下。下面埋着一座城。',ta:['寻墓','罗盘'],po:'第20章',w:.9},
+     {t:'火把照过去，石壁上全是眼睛，一只一只，跟着他们转。',ta:['古墓惊魂','尸洞'],po:'第35章',w:.9}],
+ q:['摸金校尉，合则生，分则死。'],cv:'土黄',f:47,
+ cl:'盗墓，主角当过兵，用罗盘找墓，还有一个姓杨的女人。'},
+
+{id:'b12',t:'诛仙',a:[],au:'萧鼎',g:'仙侠',s:'仙侠恋爱',y:2003,p:'幻剑',w:120,end:'BE',st:'虐',
+ ch:[{n:'张小凡',r:'男主',c:['张','小','凡'],k:'鬼厉'},{n:'碧瑶',r:'女主',c:['碧','瑶'],k:'碧瑶仙子'}],
+ wt:['入魔'],hi:['修士'],ho:['修士','魔道'],rl:['虐恋情深','正邪之间'],
+ sc:[{t:'她替他挡下那一剑，倒在他怀里，笑着说：小凡，你要好好活着。',ta:['挡剑而死','临终遗言'],po:'第80章',w:.95},
+     {t:'他抱着她的尸体走了一夜，天亮时头发全白，从此世上多了个鬼厉。',ta:['黑化','入魔'],po:'第81章',w:.9}],
+ q:['天地不仁，以万物为刍狗。'],cv:'青灰',f:41,
+ cl:'仙侠，女主为救男主挡剑死了，男主后来黑化。'},
+
+{id:'b13',t:'斗破苍穹',a:[],au:'天蚕土豆',g:'玄幻',s:'升级流',y:2009,p:'起点',w:530,end:'HE',st:'爽',
+ ch:[{n:'萧炎',r:'男主',c:['萧','炎'],k:'炎帝'},{n:'药老',r:'配角',c:['药'],k:'戒中老人'}],
+ wt:['系统流','金手指'],hi:['天才'],ho:['废柴逆袭','少年'],rl:[],
+ sc:[{t:'退婚的那天，他把休书摔在未来岳父脸上，说：三十年河东，三十年河西。',ta:['退婚','当众受辱'],po:'第3章',w:.95},
+     {t:'戒指里传来一声叹息：小子，你想变强吗？',ta:['戒中老人','金手指'],po:'第4章',w:.9}],
+ q:['三十年河东，三十年河西，莫欺少年穷。'],cv:'赤金',f:33,
+ cl:'男主本来是天才后来变废柴，被退婚，戒指里有个老头教他修炼。'},
+
+{id:'b14',t:'庆余年',a:[],au:'猫腻',g:'古言',s:'朝堂权谋',y:2007,p:'起点',w:370,end:'HE',st:'爽',
+ ch:[{n:'范闲',r:'男主',c:['范','闲'],k:'小范大人'},{n:'林婉儿',r:'女主',c:['林','婉'],k:'鸡腿姑娘'}],
+ wt:['穿越'],hi:['贵族小姐'],ho:['穿越者','权臣'],rl:['先婚后爱'],
+ sc:[{t:'他睁开眼时是个婴儿，脑子里还留着另一个世界的记忆，耳边有人在说：少爷醒了。',ta:['穿越','婴儿'],po:'第1章',w:.9},
+     {t:'朝堂之上他被当众质问身世，满殿安静，他笑着把折子摔在地上。',ta:['朝堂对峙','身世揭秘'],po:'第90章',w:.9}],
+ q:['人生在世，总得有点意思。'],cv:'赭石',f:38,
+ cl:'穿越到古代，男主叫范闲，朝堂权谋，还娶了鸡腿姑娘。'},
+
+{id:'b15',t:'开端',a:[],au:'祈祷君',g:'悬疑',s:'无限流副本',y:2019,p:'晋江',w:30,end:'HE',st:'冷',
+ ch:[{n:'李诗情',r:'女主',c:['李','诗'],k:''},{n:'肖鹤云',r:'男主',c:['肖','鹤'],k:'游戏架构师'}],
+ wt:['时间循环'],hi:['学生'],ho:['程序员'],rl:['并肩作战'],
+ sc:[{t:'公交车在桥上炸开的那一秒，她又一次睁开眼，还坐在同一个座位上。',ta:['时间循环','爆炸'],po:'第1章',w:.95},
+     {t:'他们数到第十九次重启，终于记住了凶手上车时穿的那件外套。',ta:['反复试错','找出真凶'],po:'第12章',w:.9}],
+ q:['我们再来一次。'],cv:'灰蓝',f:29,
+ cl:'同一天反复重启，公交车上爆炸，一男一女一起找凶手。'},
+
+{id:'b16',t:'长夜难明',a:[],au:'紫金陈',g:'悬疑',s:'刑侦推理',y:2017,p:'出版',w:20,end:'BE',st:'冷',
+ ch:[{n:'江阳',r:'男主',c:['江','阳'],k:'检察官'},{n:'侯贵平',r:'配角',c:['侯','贵'],k:'支教老师'}],
+ wt:[],hi:['检察官'],ho:['检察官','记者'],rl:[],
+ sc:[{t:'他把那封检举信塞进包里，走出检察院大门时，天已经黑了。',ta:['陈年旧案','翻案'],po:'第2章',w:.9},
+     {t:'多年后，他躺在病床上，用最后一口气说出那个名字：侯贵平。',ta:['临终遗言','真相大白'],po:'第20章',w:.95}],
+ q:['总要有人做这件事。'],cv:'黑',f:23,
+ cl:'悬疑，检察官查一桩很多年前的案子，最后自己也搭进去了。'},
+
+{id:'b17',t:'你是我的荣耀',a:[],au:'顾漫',g:'现言',s:'娱乐圈',y:2019,p:'晋江',w:60,end:'HE',st:'甜',
+ ch:[{n:'乔晶晶',r:'女主',c:['乔','晶'],k:'影后'},{n:'于途',r:'男主',c:['于','途'],k:'航天工程师'}],
+ wt:[],hi:['明星','影后'],ho:['工程师','学霸'],rl:['双向奔赴','多年重逢'],
+ sc:[{t:'她在游戏里拉着他打排位，直播间几十万人看着，他一声不吭地把她护在身后。',ta:['游戏直播','护着她'],po:'第8章',w:.85},
+     {t:'十年后同学聚会，他坐在角落，她端着酒杯走过去说：于途，好久不见。',ta:['多年重逢','暗恋成真'],po:'第22章',w:.9}],
+ q:['你是我的荣耀。'],cv:'星空蓝',f:36,
+ cl:'女主是明星，男主是搞航天的学霸，两人以前是同学。'},
+
+{id:'b18',t:'夫人你马甲又掉了',a:[],au:'一路烦花',g:'现言',s:'豪门虐恋',y:2019,p:'番茄',w:300,end:'HE',st:'爽',
+ ch:[{n:'简溪',r:'女主',c:['简','溪'],k:'多个马甲'},{n:'厉珩',r:'男主',c:['厉','珩'],k:'厉总'}],
+ wt:['金手指'],hi:['隐藏大佬','黑客'],ho:['总裁','大佬'],rl:['先婚后爱','互扒马甲'],
+ sc:[{t:'婚礼上所有人都等着看她的笑话，她随手敲了几下键盘，全场大屏黑了，只剩一行字：我是你们要找的那个人。',ta:['当众打脸','马甲曝光'],po:'第30章',w:.9},
+     {t:'他翻出她的资料，越翻越沉默，最后只说了句：原来你就是那位。',ta:['马甲曝光','身份揭秘'],po:'第50章',w:.85}],
+ q:['夫人，你的马甲又掉了。'],cv:'黑金',f:31,
+ cl:'现代，女主有很多隐藏身份，男主是总裁，先结婚后动心。'},
+
+{id:'b19',t:'将门毒后',a:[],au:'千山茶客',g:'古言',s:'复仇虐渣',y:2013,p:'晋江',w:180,end:'HE',st:'爽',
+ ch:[{n:'沈妙',r:'女主',c:['沈','妙'],k:'毒后'},{n:'谢景行',r:'男主',c:['谢','景'],k:'小侯爷'}],
+ wt:['重生'],hi:['嫡女','将门之女'],ho:['侯爷','少年将军'],rl:['并肩复仇','双向奔赴'],
+ sc:[{t:'她被最信任的人推进火里，临死前听见妹妹笑着说：姐姐，你终于死了。',ta:['被至亲背叛','葬身火海'],po:'第1章',w:.95},
+     {t:'再睁眼时她回到了十三岁，嫡母正端着那碗加了料的汤走过来。',ta:['重生少年时','下毒'],po:'第2章',w:.9}],
+ q:['这一世，我要你们都死。'],cv:'赤',f:42,
+ cl:'古言重生，女主前世被妹妹害死，重生回去复仇，男主是小侯爷。'},
+
+{id:'b20',t:'长相思',a:[],au:'桐华',g:'古言',s:'仙侠恋爱',y:2013,p:'出版',w:120,end:'BE',st:'虐',
+ ch:[{n:'小夭',r:'女主',c:['小','夭'],k:'玫小六'},{n:'相柳',r:'男主',c:['相','柳'],k:'九头妖'}],
+ wt:[],hi:['神族','医师'],ho:['妖','军师'],rl:['三角关系','爱而不得'],
+ sc:[{t:'她在清水镇开了间小医馆，谁也不知道她是那个被囚了三百年的人。',ta:['隐居','旧伤'],po:'第1章',w:.85},
+     {t:'他站在海边说：我带你走。她笑着摇头：我们都不是能走的人。',ta:['诀别','爱而不得'],po:'第60章',w:.9}],
+ q:['我想和你长相守，有错吗。'],cv:'海青',f:45,
+ cl:'古言仙侠，女主在清水镇开医馆，男主是九头妖，结局很虐。'},
+
+{id:'b21',t:'你好，旧时光',a:[],au:'八月长安',g:'校园',s:'校园',y:2010,p:'出版',w:40,end:'HE',st:'暖',
+ ch:[{n:'余周周',r:'女主',c:['余','周'],k:''},{n:'林杨',r:'男主',c:['林','杨'],k:'学霸'}],
+ wt:[],hi:['学生','少女'],ho:['学生','学霸'],rl:['青梅竹马','双向暗恋'],
+ sc:[{t:'小学开学第一天，她把名字写在黑板最角落，他走过去在旁边写了自己的。',ta:['同桌','青梅竹马'],po:'第1章',w:.85},
+     {t:'毕业那年他在操场等她到天黑，只为了说一句：以后也要一起走。',ta:['毕业分离','告白'],po:'第30章',w:.9}],
+ q:['余周周，你要不要和我一起走。'],cv:'暖黄',f:34,
+ cl:'校园文，男女主从小一起长大，学霸和普通女孩。'},
+
+{id:'b22',t:'山河令',a:['天涯客'],au:'priest',g:'古言',s:'江湖武侠',y:2010,p:'晋江',w:60,end:'BE',st:'冷',
+ ch:[{n:'温客行',r:'男主',c:['温','客'],k:'鬼谷谷主'},{n:'周子舒',r:'男主',c:['周','子'],k:'天窗首领'}],
+ wt:[],hi:['杀手','首领'],ho:['谷主','疯子'],rl:['双向救赎','知己'],
+ sc:[{t:'他在鬼谷长大，吃人肉活下来，笑着说：我早就是个鬼了。',ta:['灭门','入魔'],po:'第10章',w:.9},
+     {t:'桥上那一眼，他看见一个将死之人，却活得比谁都自在。',ta:['初遇','知己'],po:'第12章',w:.85}],
+ q:['山河不足重，重在遇知己。'],cv:'雪青',f:27,
+ cl:'武侠，男主之一是鬼谷谷主，另一个是前朝杀手，两人互为知己。'},
+]);
+
+const QUICK = ['古言','现言','仙侠','悬疑','玄幻','校园','穿书','重生','穿越','时间循环','系统流','破镜重圆','暗恋成真','先婚后爱','虐恋情深','甜宠','爽文'];
+const GENRES = ['古言','现言','仙侠','悬疑','玄幻','校园'];
+const ENDINGS = ['HE','BE','开放式','未知'];
+const YEARBANDS = [
+  {k:'y1', label:'2021 前后', from:2018, to:2026},
+  {k:'y2', label:'2018 前后', from:2015, to:2020},
+  {k:'y3', label:'2013 前后', from:2010, to:2016},
+  {k:'y4', label:'更早', from:1990, to:2010}
+];
+const MODE_TIP = {
+  plot:'比如：女主穿进书里，男主是脾气很差的王爷，女主要完成任务才能回去…',
+  title:'比如：书名四个字，好像改过名，以前叫什么黑月光…',
+  cover:'比如：封面是深蓝色，一个女孩站在灯塔下面…',
+  quote:'比如：记得一句台词：“三十年河东，三十年河西”…'
+};
+const MODE_SUG = {
+  plot:['女主大婚被退婚','重生回十五岁复仇','同一天反复重启','穿进小说里做任务'],
+  title:['书名四个字','好像改过名','记得主角姓顾','名字里有“月”'],
+  cover:['封面深蓝色','封面雪白一片','封面有个人物背影','封面色偏黑金'],
+  quote:['三十年河东，三十年河西','你终于肯杀我了','我等你七年了','山河不足重']
+};
+
+const POSTS = [
+{id:'p1',t:'“女主每次睡着都会回到古代，醒来又回到病房，古代那边好像有个将军。”',g:'古言',x:'双时空 / 2018年前后',v:126,notes:['桃：我也看过，作者好像写过三部曲','竹：结局是女主留在了古代','风：是不是《某某》系列？'],status:'搜集中'},
+{id:'p2',t:'“只记得封面是深蓝色，一个女孩站在灯塔下面，男主名字里好像有“川”。”',g:'现言',x:'蓝色封面 / 更早',v:98,notes:[],status:'等待认领'},
+{id:'p3',t:'“校园文，学霸女主帮同桌补习，同桌表面很凶但一直偷偷给她带早餐。”',g:'校园',x:'暗恋 / 2020年前后',v:64,notes:['阿念：这个我熟，像是《某某》'],status:'有线索'},
+{id:'p4',t:'“书名四个字，女主能听见植物说话，在古镇开了一家花店。”',g:'奇幻',x:'治愈 / 不确定',v:37,notes:[],status:'等待认领'}
+];
+const STEPS = [
+{no:'01',h:'先写下最确定的事',p:'人物名、职业、地点、一句台词，甚至只记得“封面是蓝色的”。'},
+{no:'02',h:'一起缩小范围',p:'系统按相似度排出候选，并用剧情与角色证据告诉你为什么像。'},
+{no:'03',h:'确认，再把它收好',p:'锁定后保存现用书名、曾用名、阅读平台和正版入口。'}
+];
+
+const LEX = [
+ {p:['古言','古代','古装','宫里','宫廷','皇上','王爷','朝堂','后宅','嫡女','庶女','和亲'],t:'古言',f:'main'},
+ {p:['现代','都市','总裁','豪门','公司','娱乐圈','明星','影后'],t:'现言',f:'main'},
+ {p:['仙侠','修仙','修真','上神','仙尊','魔尊','诛仙台','飞升'],t:'仙侠',f:'main'},
+ {p:['悬疑','推理','探案','刑侦','凶手','命案','法医','诡计'],t:'悬疑',f:'main'},
+ {p:['玄幻','斗气','升级','灵根','灵石'],t:'玄幻',f:'main'},
+ {p:['校园','高中','大学','同桌','学生','毕业','教室'],t:'校园',f:'main'},
+
+ {p:['穿书','穿进书','书中世界','剧情里'],t:'穿书',f:'world'},
+ {p:['重生','回到过去','重活','再来一次','前世'],t:'重生',f:'world'},
+ {p:['穿越','穿到古代','穿越到'],t:'穿越',f:'world'},
+ {p:['系统','面板','任务才能回去','攻略任务'],t:'系统流',f:'world'},
+ {p:['同一天','反复重启','循环','重启'],t:'时间循环',f:'world'},
+ {p:['网游','游戏里','开黑','排位'],t:'网游',f:'world'},
+ {p:['失忆','忘了'],t:'失忆',f:'world'},
+ {p:['入魔','黑化','堕魔'],t:'入魔',f:'world'},
+ {p:['马甲','隐藏身份'],t:'金手指',f:'world'},
+ {p:['双时空','两个世界'],t:'双时空',f:'world'},
+
+ {p:['庶女','妾室所生'],t:'庶女',f:'hi'},
+ {p:['嫡女','正室所生'],t:'嫡女',f:'hi'},
+ {p:['神医','医术'],t:'神医',f:'hi'},
+ {p:['公主','和亲','九公主'],t:'公主',f:'hi'},
+ {p:['奴隶','奴婢'],t:'奴隶',f:'hi'},
+ {p:['影后','明星','演员','女主播'],t:'影后',f:'hi'},
+ {p:['学霸','学神'],t:'学神',f:'hi'},
+ {p:['将军','女将','披甲'],t:'将军',f:'hi'},
+ {p:['检察官','律师','法医'],t:'检察官',f:'hi'},
+
+ {p:['王爷','侯爷','小侯爷'],t:'王爷',f:'ho'},
+ {p:['太子','皇子','皇帝','帝王'],t:'太子',f:'ho'},
+ {p:['魔尊','鬼王','妖'],t:'魔尊',f:'ho'},
+ {p:['总裁','厉总','有钱','大佬'],t:'总裁',f:'ho'},
+ {p:['校草','学神','学长'],t:'校草',f:'ho'},
+ {p:['工程师','航天','程序员'],t:'工程师',f:'ho'},
+ {p:['律师','医生'],t:'精英',f:'ho'},
+ {p:['杀手','刺客'],t:'杀手',f:'ho'},
+ {p:['疯批','偏执','病娇','疯子'],t:'疯批',f:'ho'},
+
+ {p:['破镜重圆','分开','重逢','复合','七年'],t:'破镜重圆',f:'rel'},
+ {p:['暗恋','偷偷喜欢','开不了口'],t:'暗恋成真',f:'rel'},
+ {p:['先婚后爱','契约婚姻','假结婚','协议'],t:'先婚后爱',f:'rel'},
+ {p:['追妻','火葬场','后悔'],t:'追妻火葬场',f:'rel'},
+ {p:['替身','白月光'],t:'替身文学',f:'rel'},
+ {p:['虐','be','悲剧','意难平','死了'],t:'虐恋情深',f:'rel'},
+ {p:['甜','宠','甜宠'],t:'甜宠',f:'st'},
+ {p:['爽','打脸','逆袭'],t:'爽文',f:'st'},
+ {p:['双向','互相喜欢'],t:'双向奔赴',f:'rel'},
+ {p:['三生三世','转世'],t:'转世情劫',f:'rel'},
+
+ {p:['大婚','退婚','悔婚','休书'],t:'大婚退婚',f:'plot'},
+ {p:['庶妹','妹妹抢','抢未婚夫'],t:'庶妹夺爱',f:'plot'},
+ {p:['跳崖','跳下','投河','自尽','跳诛仙台'],t:'跳崖/自尽',f:'plot'},
+ {p:['挡剑','替死','为他死'],t:'挡剑而死',f:'plot'},
+ {p:['灭门','满门','抄家','流放'],t:'抄家灭门',f:'plot'},
+ {p:['复仇','报仇','翻身'],t:'复仇成功',f:'plot'},
+ {p:['打脸','当众','羞辱'],t:'当众打脸',f:'plot'},
+ {p:['下毒','汤','毒'],t:'下毒',f:'plot'},
+ {p:['火灾','火海','烧死'],t:'葬身火海',f:'plot'},
+ {p:['假死','装死'],t:'假死脱身',f:'plot'},
+ {p:['入宫','选秀'],t:'选秀入宫',f:'plot'},
+ {p:['孩子没了','滑胎','落胎'],t:'麝香滑胎',f:'plot'},
+ {p:['下墓','古墓','棺材','盗墓','摸金'],t:'古墓惊魂',f:'plot'},
+ {p:['爆炸','凶手','找出真凶'],t:'连环命案',f:'plot'},
+ {p:['翻案','陈年旧案','检举'],t:'陈年旧案',f:'plot'},
+ {p:['背锅','顶罪'],t:'背黑锅',f:'plot'},
+
+ {p:['he','在一起','圆满','甜的结局'],t:'HE',f:'end'},
+ {p:['be','悲剧','死了','自刎','没在一起'],t:'BE',f:'end'},
+ {p:['开放式','没说清','留白'],t:'开放式',f:'end'}
+];
+
+let ST = {mode:'plot', sel:[], genre:null, ending:null, year:null, excluded:[], cands:[]};
+const $ = id => document.getElementById(id);
+function go(v){
+  ['search','res','comm','wall'].forEach(k=>{
+    const el=$('view-'+k); if(el) el.classList.remove('on');
+    const nb=$('n-'+k); if(nb) nb.classList.remove('on');
+  });
+  const el=$('view-'+v); if(el) el.classList.add('on');
+  const nb=$('n-'+v); if(nb) nb.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function grams(t){
+  const s=String(t||'').replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g,'').toLowerCase();
+  const g=[]; for(let i=0;i<s.length-1;i++) g.push(s.substr(i,2)); return g;
+}
+function overlap(a,b){
+  const A=new Set(grams(a)),B=grams(b); let n=0; const seen=new Set();
+  B.forEach(g=>{ if(A.has(g)&&!seen.has(g)){n++;seen.add(g);} });
+  return n;
+}
+const STMAP = {'甜':'甜宠','虐':'虐恋情深','爽':'爽文','冷':'冷峻','暖':'温暖'};
+function bookTags(b){
+  return [].concat([b.g,b.s],b.wt||[],b.hi||[],b.ho||[],b.rl||[],(b.st?[STMAP[b.st]||b.st]:[]),b.sc.map(s=>s.ta).flat());
+}
+function tagHit(x,y){
+  if(!x||!y) return false;
+  if(x===y) return true;
+  return (x.length>=2 && y.indexOf(x)>-1) || (y.length>=2 && x.indexOf(y)>-1);
+}
+function setMode(m){
+  ST.mode=m;
+  document.querySelectorAll('#modes .chip').forEach(c=>c.classList.toggle('on',c.dataset.mode===m));
+  if($('q')) $('q').placeholder=MODE_TIP[m];
+  renderSuggest();
+}
+function renderSuggest(){
+  if(!$('suggest')) return;
+  $('suggest').innerHTML = MODE_SUG[ST.mode].map(t=>`<button class="sg" onclick="pick('${esc(t)}')">${esc(t)}</button>`).join('');
+}
+function pick(t){ $('q').value=t; doSearch(); }
+
+function buildChips(box, list, kind){
+  box.innerHTML = list.map(v=>`<button class="chip${isOn(kind,v)?' on':''}" onclick="toggleSel('${kind}','${esc(v)}',this)">${esc(v)}</button>`).join('');
+}
+function isOn(kind,v){
+  if(kind==='quick') return ST.sel.indexOf(v)>-1;
+  if(kind==='genre') return ST.genre===v;
+  if(kind==='ending') return ST.ending===v;
+  if(kind==='year') return ST.year===v;
+  return false;
+}
+function toggleSel(kind,v,btn){
+  if(kind==='quick'){
+    const i=ST.sel.indexOf(v);
+    if(i>-1) ST.sel.splice(i,1); else ST.sel.push(v);
+    btn.classList.toggle('on');
+  }else{
+    const key = kind==='genre'?'genre':kind==='ending'?'ending':'year';
+    ST[key] = (ST[key]===v)?null:v;
+    document.querySelectorAll('#'+({genre:'fGenre',ending:'fEnding',year:'fYear'}[kind]+' .chip')).forEach(c=>{
+      c.classList.toggle('on', c.textContent===ST[key]);
+    });
+  }
+}
+
+function inferTags(text){
+  const t=(text||'').toLowerCase(); const out=[];
+  LEX.forEach(e=>{ if(e.p.some(p=>t.indexOf(p.toLowerCase())>-1) && out.indexOf(e.t)===-1) out.push(e.t); });
+  return out;
+}
+function score(b, q, inf, tags){
+  const all=bookTags(b);
+  let s=0; const ev=[];
+  tags.concat(inf).forEach(t=>{
+    if(all.some(x=>tagHit(x,t))){ s+=14; if(ev.indexOf(t)===-1) ev.push(t); }
+  });
+  const nameCue = /名字|姓名|叫什么|姓什么|一字|记得.*字|主角/.test(q||'');
+  (b.ch||[]).forEach(c=>{
+    if(q.indexOf(c.n)>-1){ s+=32; ev.push('角色名 '+c.n); }
+    else if(nameCue && (c.c||[]).some(x=>x && q.indexOf(x)>-1)){ s+=14; ev.push('名字含字 '+c.c.join('')); }
+  });
+  [b.t].concat(b.a||[]).forEach(nm=>{
+    const g=grams(nm), qg=new Set(grams(q));
+    const hit=g.filter(x=>qg.has(x)).length;
+    if(hit>=2 || (ST.mode==='title' && hit>=1)){ s+=(ST.mode==='title'?26:18); ev.push('书名/别名片段'); }
+  });
+  let best=null,bo=0;
+  (b.sc||[]).forEach(sc=>{
+    const o=overlap(q, sc.t); if(o>bo){bo=o;best=sc;}
+  });
+  if(bo>0){ s+=Math.min(28, bo*3); ev.push('桥段文字相似 +'+Math.min(28,bo*3)); }
+  (b.q||[]).forEach(qt=>{ const o=overlap(q,qt); if(o>=3){ s+=12; ev.push('台词片段'); } });
+  const cv=(b.cv||'');
+  if(q && cv){
+    const d=Math.min(2, cv.length);
+    if(q.indexOf(cv.slice(0,d))>-1){ s+= (ST.mode==='cover'?16:8); ev.push('封面主色 '+cv); }
+  }
+  if(ST.ending && b.end===ST.ending){ s+=12; ev.push('结局 '+b.end); }
+  if(ST.year){
+    const band=YEARBANDS.filter(x=>x.k===ST.year)[0];
+    if(band && b.y>=band.from && b.y<=band.to){ s+=8; ev.push('年份区间匹配'); }
+  }
+  return {s:s, pct:Math.max(26, Math.min(98, 26+s)), ev:ev, best:best};
+}
+function doSearch(){
+  const q=($('q').value||'').trim();
+  const inf=inferTags(q);
+  const tags=ST.sel.slice();
+  if(!q && !tags.length && !ST.genre && !ST.ending && !ST.year){
+    alert('先写一点你记得的，或者选一个标签'); return;
+  }
+  const rows=[];
+  BOOKS.forEach(b=>{
+    if(ST.excluded.indexOf(b.id)>-1) return;
+    if(ST.genre && b.g!==ST.genre && b.s!==ST.genre) return;
+    if(ST.ending && b.end!==ST.ending) return;
+    const r=score(b,q,inf,tags);
+    if(r.s>=8 || (ST.genre||ST.ending)) rows.push({b:b,r:r});
+  });
+  rows.sort((x,y)=>y.r.s-x.r.s);
+  ST.cands=rows.slice(0,8);
+  renderRes(q,inf,tags);
+  go('res');
+}
+function renderRes(q,inf,tags){
+  const meta=[];
+  if(q) meta.push('“'+q.slice(0,26)+(q.length>26?'…':'')+'”');
+  if(tags.length) meta.push('标签 '+tags.join('、'));
+  if(inf.length) meta.push('识别 '+inf.join('、'));
+  if(ST.genre) meta.push('类型 '+ST.genre);
+  if(ST.ending) meta.push('结局 '+ST.ending);
+  $('resMeta').textContent = meta.join(' · ') || '全部索引';
+  $('resTitle').textContent = ST.cands.length ? '最可能的 '+ST.cands.length+' 本' : '没有匹配到';
+  if(!ST.cands.length){
+    $('resList').innerHTML = `<div class="empty">库里暂时没有能对上的书。<br>可以把线索留到「互助」，让读过的人来认领。</div>`;
+    $('resExtra').innerHTML = `<button class="btn2" onclick="go('comm')">去发寻书帖</button>
+      <button class="btn2" onclick="go('search')" style="margin-left:8px">回去改线索</button>`;
+    return;
+  }
+  $('resList').innerHTML = ST.cands.map(({b,r},i)=>card(b,r,i)).join('');
+  hq();
+}
+function card(b,r,i){
+  const hits=new Set(r.ev.map(x=>x.replace(/ .*$/,'')));
+  const tagHtml = bookTags(b).filter((v,idx,a)=>a.indexOf(v)===idx).slice(0,9)
+    .map(t=>`<span class="tag${hits.has(t)?' hit':''}">${esc(t)}</span>`).join('');
+  const sc = r.best || (b.sc||[])[0];
+  return `<div class="bk">
+    <div class="bkh">
+      <div class="ring" style="--p:${r.pct}"><i></i><span>${r.pct}%</span></div>
+      <div class="bkt">
+        <h3 class="serif">《${esc(b.t)}》</h3>
+        <div class="m">${esc(b.au)} · ${esc(b.g)}/${esc(b.s)} · ${b.y} · ${esc(b.p)}${b.a&&b.a.length?' · 原名《'+esc(b.a[0])+'》':''}</div>
+        <div class="tags">${tagHtml}</div>
+      </div>
+    </div>
+    ${sc?`<div class="scene"><b>匹配桥段：</b>${esc(sc.t)}</div>`:''}
+    <div class="bka">
+      <button class="mini yes" onclick="confirmBook('${b.id}')">是这本</button>
+      <button class="mini" onclick="excludeBook('${b.id}')">不是这本</button>
+      <button class="mini" onclick="openDrawer('${b.id}')">看它的字段</button>
+      <button class="mini" onclick="toggleScore(${i},this)">得分构成</button>
+    </div>
+    <div class="score" id="score-${i}">
+      <table>${r.ev.map(e=>`<tr><td>${esc(e)}</td><td>${e.indexOf('+')>-1?'':''}✓</td></tr>`).join('')}
+      <tr><td><b>合计</b></td><td>${r.s} 分 → ${r.pct}%</td></tr></table>
+    </div>
+  </div>`;
+}
+function toggleScore(i,btn){ $('score-'+i).classList.toggle('on'); }
+function hq(){
+  const qs=[['结局是 HE','HE'],['结局是 BE','BE'],['开放式结局','开放式']];
+  const gs=[['古言','古言'],['现言','现言'],['仙侠','仙侠'],['悬疑','悬疑']];
+  $('resExtra').innerHTML = `<div class="sl" style="margin-bottom:8px">再补一条，就能更准</div>
+    <div class="chips">${qs.map(x=>`<button class="sg" onclick="quickFilter('ending','${esc(x[1])}')">${esc(x[0])}</button>`).join('')}</div>
+    <div class="chips" style="margin-top:8px">${gs.map(x=>`<button class="sg" onclick="quickFilter('genre','${esc(x[1])}')">${esc(x[0])}</button>`).join('')}</div>
+    <div style="margin-top:12px"><button class="btn2" onclick="openPostFromQuery()">都不对，发寻书帖</button>
+    <button class="btn2" style="margin-left:8px" onclick="$('q').focus()">补一个主角名里的字</button></div>`;
+}
+function quickFilter(kind,v){
+  if(kind==='ending') ST.ending=v; else ST.genre=v;
+  doSearch();
+}
+function excludeBook(id){
+  if(ST.excluded.indexOf(id)===-1) ST.excluded.push(id);
+  const q=($('q').value||'').trim(); const inf=inferTags(q);
+  const rows=[]; BOOKS.forEach(b=>{
+    if(ST.excluded.indexOf(b.id)>-1) return;
+    if(ST.genre && b.g!==ST.genre && b.s!==ST.genre) return;
+    if(ST.ending && b.end!==ST.ending) return;
+    const r=score(b,q,inf,ST.sel); if(r.s>=8||ST.genre||ST.ending) rows.push({b:b,r:r});
+  });
+  rows.sort((x,y)=>y.r.s-x.r.s); ST.cands=rows.slice(0,8);
+  renderRes(q,inf,ST.sel);
+}
+
+function openDrawer(id){
+  const b=BOOKS.filter(x=>x.id===id)[0]; if(!b) return;
+  const kv=(k,v)=>`<div class="kv"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const tg=arr=>(arr&&arr.length)?arr.map(t=>`<span class="tag">${esc(t)}</span>`).join(''):'<span style="color:var(--ink3)">暂无</span>';
+  let html=`<button class="dclose" onclick="closeDrawer()">×</button>
+    <h2>《${esc(b.t)}》</h2>
+    <div class="dm">${esc(b.au)} · ${esc(b.g)} / ${esc(b.s)} · ${b.y} 年 · ${esc(b.p)}</div>
+    <div class="sec-t">A 书元信息</div>
+    ${kv('现用书名',esc(b.t))}${kv('曾用名',tg(b.a))}${kv('作者',esc(b.au))}${kv('总字数',b.w+' 万字')}${kv('平台',esc(b.p))}${kv('发文年份',b.y+'（弱证据，可能±3年）')}${kv('封面主色',esc(b.cv))}${kv('置信度','0.88 · 来源：人工录入 + txt核验')}
+    <div class="sec-t">B 题材</div>
+    ${kv('主类型',esc(b.g))}${kv('二级子类',esc(b.s))}${kv('设定标签',tg(b.wt))}
+    <div class="sec-t">C 人物</div>
+    ${(b.ch||[]).map(c=>kv(c.r+' · '+c.n, '名字含字：'+(c.c||[]).join('/')+(c.k?' · 外号：'+esc(c.k):''))).join('')}
+    <div class="sec-t">D 情节</div>
+    ${kv('女主身份',tg(b.hi))}${kv('男主身份',tg(b.ho))}${kv('感情模式',tg(b.rl))}${kv('结局',esc(b.end))}${kv('名场面数',(b.sc||[]).length+' 条')}
+    <div class="sec-t">名场面（一条桥段一行）</div>
+    ${(b.sc||[]).map(s=>`<div class="sc"><p>${esc(s.t)}</p><div class="st">${s.ta.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}<span class="tag">${esc(s.po)}</span><span class="tag">权重 ${s.w}</span></div></div>`).join('')}
+    <div class="sec-t">E 台词与标志物</div>
+    ${kv('台词',(b.q||[]).map(q=>'“'+esc(q)+'”').join('<br>')||'暂无')}
+    <div class="note">字段结构对应后端样表 01 提取清单；此处的平台与年份属弱证据，检索时只做加权，不做硬过滤。</div>`;
+  $('dpanel').innerHTML=html;
+  $('drawer').classList.add('on');
+}
+function closeDrawer(){ $('drawer').classList.remove('on'); }
+
+function store(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function load(k,d){ try{ return JSON.parse(localStorage.getItem(k))||d; }catch(e){ return d; } }
+
+function confirmBook(id){
+  const b=BOOKS.filter(x=>x.id===id)[0]; if(!b) return;
+  const found=load('sy_found',[]);
+  if(!found.some(x=>x.id===id)){ found.unshift({id:id,t:b.t,au:b.au,g:b.g,cl:(b.cl||'（本次由你确认）'),by:'你'}); store('sy_found',found); }
+  renderWall(); renderWallMini();
+  $('resExtra').innerHTML=`<div class="empty" style="border-style:solid;background:#EFF4F0">已确认《${esc(b.t)}》，记入「找回墙」。<br>
+    <button class="btn2" style="margin-top:10px" onclick="go('wall')">去看看</button>
+    <button class="btn2" style="margin-top:10px;margin-left:8px" onclick="go('search')">再找一本</button></div>`;
+}
+
+function renderPosts(){
+  const extra=load('sy_posts',[]);
+  const all=extra.concat(POSTS);
+  $('postCount').textContent='共 '+all.length+' 条';
+  $('postList').innerHTML=all.map(p=>`<div class="bk">
+    <div class="bkt">
+      <div class="m">寻书帖 · ${esc(p.g)} · ${esc(p.x)} · ${p.v} 人看过</div>
+      <h3 class="serif" style="font-size:15px;margin:8px 0 6px">${esc(p.t)}</h3>
+      <div class="tags"><span class="tag ${p.status==='已找到'?'hit':''}">${esc(p.status)}</span><span class="tag">${(p.notes||[]).length} 条线索</span></div>
+      ${(p.notes||[]).length?`<div class="scene">${p.notes.map(n=>esc(n)).join('<br>')}</div>`:''}
+    </div>
+    <div class="bka">
+      <button class="mini" onclick="addNote('${p.id}')">提供线索</button>
+      ${(p.id||'').indexOf('u')===0?`<button class="mini yes" onclick="markFound('${p.id}')">标记已找到</button>`
+        :`<span class="onlyowner">仅发布者可标记已找到</span>`}
+    </div>
+    <div class="ne" id="ne-${p.id}">
+      <input class="fin" id="ni-${p.id}" placeholder="补一条线索：作者、结局、平台、配角名…">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn2" style="padding:8px 14px" onclick="submitNote('${p.id}')">提交线索</button>
+        <button class="btn2" style="padding:8px 14px" onclick="closeNote('${p.id}')">取消</button>
+      </div>
+    </div>
+  </div>`).join('');
+}
+let POSTG='未分类';
+function pickPostTag(g,btn){
+  POSTG=g;
+  document.querySelectorAll('#postTags .sg').forEach(c=>c.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+}
+function addPost(){
+  const txt=($('postText').value||'').trim(); if(!txt){ alert('先写一句线索'); return; }
+  const extra=load('sy_posts',[]);
+  extra.unshift({id:'u'+Date.now(),t:'“'+txt+'”',g:POSTG||'未分类',x:'待补充 · '+new Date().toLocaleDateString('zh-CN'),v:1,notes:[],status:'等待认领'});
+  store('sy_posts',extra); $('postText').value=''; renderPosts();
+}
+function patchPost(id,fn){
+  const extra=load('sy_posts',[]); const base=POSTS;
+  const found=extra.filter(p=>p.id===id)[0];
+  if(found){ fn(found); store('sy_posts',extra); renderPosts(); return; }
+  const b=base.filter(p=>p.id===id)[0];
+  if(b){ const moved=JSON.parse(JSON.stringify(b)); fn(moved); extra.unshift(moved); store('sy_posts',extra);
+    const idx=POSTS.indexOf(b); if(idx>-1) POSTS.splice(idx,1); renderPosts(); }
+}
+function addNote(id){
+  const box=$('ne-'+id); if(!box) return;
+  const on=box.classList.contains('on');
+  document.querySelectorAll('.ne.on').forEach(b=>b.classList.remove('on'));
+  if(!on){ box.classList.add('on'); const inp=$('ni-'+id); if(inp){ inp.value=''; setTimeout(()=>{ try{inp.focus();}catch(e){} },80); } }
+}
+function closeNote(id){ const box=$('ne-'+id); if(box) box.classList.remove('on'); }
+function submitNote(id){
+  const inp=$('ni-'+id); const v=inp? (inp.value||'').trim() : '';
+  if(!v){ alert('先写一句线索'); return; }
+  patchPost(id,p=>{ p.notes=p.notes||[]; p.notes.push('你：'+v); if(p.status==='等待认领') p.status='有线索'; });
+  const box=$('ne-'+id); if(box) box.classList.remove('on');
+}
+function markFound(id){
+  if((id||'').indexOf('u')!==0){ alert('只有发布这条寻书帖的人才能标记已找到'); return; }
+  patchPost(id,p=>{ p.status='已找到'; });
+}
+function openPostFromQuery(){
+  const q=$('q')? ($('q').value||'').trim() : '';
+  go('comm'); if($('postText')) $('postText').value=q;
+}
+
+function renderWall(){
+  const all=load('sy_found',[]);
+  const sample=BOOKS.filter(b=>b.f>40).slice(0,4).map(b=>({t:b.t,au:b.au,g:b.g,cl:b.cl,v:b.f}));
+  const merged=all.map(x=>({t:x.t,au:x.au,g:x.g,cl:x.cl,v:0,by:'你确认'})).concat(sample);
+  const one = x=>`<div class="bk">
+    <div class="m" style="font-size:12px;color:var(--ink3)">${x.by||('已找回 · 从 '+(x.v||1)+' 条回忆中认出')}</div>
+    <h3 class="serif" style="font-size:15.5px;margin:8px 0 4px">《${esc(x.t)}》</h3>
+    <div class="m" style="font-size:12px;color:var(--ink3)">${esc(x.au)} · ${esc(x.g)}</div>
+    <div class="scene">${esc(x.cl)}</div>
+  </div>`;
+  if($('wallList')) $('wallList').innerHTML=merged.map(one).join('');
+  if($('wallMini')) $('wallMini').innerHTML=merged.slice(0,4).map(one).join('');
+}
+function renderWallMini(){ renderWall(); }
+
+function initChips(){
+  if($('quickTags')) buildChips($('quickTags'), QUICK, 'quick');
+  if($('fGenre')) buildChips($('fGenre'), GENRES, 'genre');
+  if($('fEnding')) buildChips($('fEnding'), ENDINGS, 'ending');
+  if($('fYear')) buildChips($('fYear'), YEARBANDS.map(y=>y.label), 'year');
+}
+function initStats(){
+  const scenes=BOOKS.reduce((n,b)=>n+(b.sc||[]).length,0);
+  if(!$('stat')||!$('kpis')) return;
+  $('stat').textContent = '共 '+BOOKS.length+' 本 · '+scenes+' 条桥段 · 示例库';
+  $('kpis').innerHTML = [
+    ['22 本','当前示例书目索引'],
+    ['6 类','主类型，先过滤再检索'],
+    ['4 种','剧情 / 书名 / 封面 / 台词入口'],
+    [scenes+' 条','名场面，一条一行一条向量']
+  ].map(x=>`<div class="fbox"><div class="ft">${x[1]}</div><div style="font-family:'Noto Serif SC',serif;font-size:22px;font-weight:900">${x[0]}</div></div>`).join('');
+}
+function initSteps(){
+  if(!$('steps')) return;
+  $('steps').innerHTML = STEPS.map(s=>`<div class="fbox">
+    <div class="ft" style="color:var(--red);font-weight:700">${s.no}</div>
+    <div style="font-size:14px;font-weight:700;margin:4px 0 5px">${esc(s.h)}</div>
+    <div style="font-size:12.5px;color:var(--ink2);line-height:1.65">${esc(s.p)}</div>
+  </div>`).join('');
+}
+function init(){
+  initChips(); initStats(); initSteps();
+  const pt=$('postTags');
+  if(pt) pt.innerHTML = ['古言','现言','仙侠','悬疑','玄幻','校园','奇幻','不确定']
+    .map(g=>`<button class="sg" onclick="pickPostTag('${g}',this)">${g}</button>`).join('');
+  renderPosts(); renderWall();
+  try{ setMode('plot'); }catch(e){}
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+}
+init();
+
+const VOCAB = {"main":["古言","现言","仙侠","玄幻","武侠","悬疑","灵异","末世","科幻","无限流","快穿","校园","都市","年代","军事","西幻","纯爱","百合","无CP","竞技","轻小说","同人"],"sub":[{"m":"古言","s":"宫斗"},{"m":"古言","s":"宅斗"},{"m":"古言","s":"朝堂权谋"},{"m":"古言","s":"王妃侯门"},{"m":"古言","s":"女帝女强"},{"m":"古言","s":"世家联姻"},{"m":"古言","s":"和亲"},{"m":"古言","s":"替嫁"},{"m":"古言","s":"先婚后爱"},{"m":"古言","s":"破镜重圆"},{"m":"古言","s":"重生复仇"},{"m":"古言","s":"穿书攻略"},{"m":"古言","s":"种田经商"},{"m":"古言","s":"医妃"},{"m":"古言","s":"捉妖玄言"},{"m":"古言","s":"江湖古言"},{"m":"古言","s":"甜宠古言"},{"m":"古言","s":"虐恋古言"},{"m":"现言","s":"豪门虐恋"},{"m":"现言","s":"都市职场"},{"m":"现言","s":"娱乐圈"},{"m":"现言","s":"校园青春"},{"m":"现言","s":"契约婚姻"},{"m":"现言","s":"先婚后爱"},{"m":"现言","s":"追妻火葬场"},{"m":"现言","s":"暗恋成真"},{"m":"现言","s":"破镜重圆"},{"m":"现言","s":"带球跑"},{"m":"现言","s":"隐婚"},{"m":"现言","s":"婆媳家斗"},{"m":"现言","s":"医生律师"},{"m":"现言","s":"电竞"},{"m":"现言","s":"网红直播"},{"m":"现言","s":"总裁文"},{"m":"仙侠","s":"修真升级"},{"m":"仙侠","s":"仙门师徒"},{"m":"仙侠","s":"三界情劫"},{"m":"仙侠","s":"飞升渡劫"},{"m":"仙侠","s":"魔道入魔"},{"m":"仙侠","s":"剑修"},{"m":"仙侠","s":"符修"},{"m":"仙侠","s":"妖修"},{"m":"仙侠","s":"神魔大战"},{"m":"仙侠","s":"凡人流"},{"m":"仙侠","s":"洪荒"},{"m":"仙侠","s":"仙侠虐恋"},{"m":"玄幻","s":"东方玄幻"},{"m":"玄幻","s":"升级流"},{"m":"玄幻","s":"系统流"},{"m":"玄幻","s":"武魂斗气"},{"m":"玄幻","s":"家族崛起"},{"m":"玄幻","s":"王朝争霸"},{"m":"玄幻","s":"炼丹炼器"},{"m":"玄幻","s":"御兽"},{"m":"玄幻","s":"位面"},{"m":"玄幻","s":"洪荒封神"},{"m":"玄幻","s":"热血战斗"},{"m":"玄幻","s":"剑道"},{"m":"武侠","s":"江湖恩怨"},{"m":"武侠","s":"门派争斗"},{"m":"武侠","s":"朝廷鹰犬"},{"m":"武侠","s":"刀剑情仇"},{"m":"武侠","s":"群像武侠"},{"m":"武侠","s":"女侠"},{"m":"武侠","s":"刺客"},{"m":"武侠","s":"快意恩仇"},{"m":"悬疑","s":"刑侦破案"},{"m":"悬疑","s":"本格推理"},{"m":"悬疑","s":"社会派"},{"m":"悬疑","s":"密室"},{"m":"悬疑","s":"连环案"},{"m":"悬疑","s":"心理悬疑"},{"m":"悬疑","s":"民俗怪谈"},{"m":"悬疑","s":"盗墓探险"},{"m":"悬疑","s":"罪案追凶"},{"m":"悬疑","s":"反转诡计"},{"m":"灵异","s":"茅山道术"},{"m":"灵异","s":"捉鬼驱邪"},{"m":"灵异","s":"阴阳眼"},{"m":"灵异","s":"纸人扎彩"},{"m":"灵异","s":"出马仙"},{"m":"灵异","s":"赶尸"},{"m":"灵异","s":"鬼宅"},{"m":"灵异","s":"校园怪谈"},{"m":"灵异","s":"都市灵异"},{"m":"灵异","s":"民间禁忌"},{"m":"末世","s":"丧尸危机"},{"m":"末世","s":"灾变求生"},{"m":"末世","s":"冰河极寒"},{"m":"末世","s":"废土"},{"m":"末世","s":"变异进化"},{"m":"末世","s":"基地建设"},{"m":"末世","s":"异能觉醒"},{"m":"末世","s":"囤货求生"},{"m":"末世","s":"末世种田"},{"m":"末世","s":"末世重建"},{"m":"科幻","s":"星际航行"},{"m":"科幻","s":"机甲"},{"m":"科幻","s":"人工智能"},{"m":"科幻","s":"时间旅行"},{"m":"科幻","s":"赛博朋克"},{"m":"科幻","s":"基因改造"},{"m":"科幻","s":"太空歌剧"},{"m":"科幻","s":"硬科幻"},{"m":"科幻","s":"平行世界"},{"m":"无限流","s":"主神空间"},{"m":"无限流","s":"副本闯关"},{"m":"无限流","s":"规则怪谈"},{"m":"无限流","s":"恐怖逃生"},{"m":"无限流","s":"团队协作"},{"m":"无限流","s":"轮回记忆"},{"m":"无限流","s":"副本BOSS"},{"m":"快穿","s":"系统任务"},{"m":"快穿","s":"逆袭虐渣"},{"m":"快穿","s":"甜宠快穿"},{"m":"快穿","s":"女配翻身"},{"m":"快穿","s":"攻略男主"},{"m":"快穿","s":"位面穿梭"},{"m":"快穿","s":"快穿虐恋"},{"m":"校园","s":"高中日常"},{"m":"校园","s":"大学校园"},{"m":"校园","s":"学霸"},{"m":"校园","s":"校霸"},{"m":"校园","s":"早恋"},{"m":"校园","s":"竞赛"},{"m":"校园","s":"社团"},{"m":"校园","s":"青春疼痛"},{"m":"校园","s":"师生"},{"m":"校园","s":"校园重生"},{"m":"都市","s":"都市异能"},{"m":"都市","s":"神豪"},{"m":"都市","s":"逆袭打脸"},{"m":"都市","s":"都市医仙"},{"m":"都市","s":"兵王回归"},{"m":"都市","s":"都市修仙"},{"m":"都市","s":"都市悬疑"},{"m":"都市","s":"婚恋"},{"m":"都市","s":"家庭伦理"},{"m":"都市","s":"创业商战"},{"m":"都市","s":"都市灵异"},{"m":"都市","s":"都市美食"},{"m":"年代","s":"知青"},{"m":"年代","s":"七零"},{"m":"年代","s":"八零"},{"m":"年代","s":"九零"},{"m":"年代","s":"家长里短"},{"m":"年代","s":"年代经商"},{"m":"年代","s":"军婚"},{"m":"年代","s":"大院"},{"m":"军事","s":"抗战"},{"m":"军事","s":"谍战"},{"m":"军事","s":"特种兵"},{"m":"军事","s":"军旅"},{"m":"军事","s":"战争史诗"},{"m":"军事","s":"佣兵"},{"m":"军事","s":"军队成长"},{"m":"西幻","s":"剑与魔法"},{"m":"西幻","s":"龙与骑士"},{"m":"西幻","s":"精灵矮人"},{"m":"西幻","s":"教会神权"},{"m":"西幻","s":"王权争霸"},{"m":"西幻","s":"魔法学院"},{"m":"西幻","s":"异种族"},{"m":"西幻","s":"吸血鬼"},{"m":"西幻","s":"恶魔契约"},{"m":"西幻","s":"史诗战记"},{"m":"纯爱","s":"校园暗恋"},{"m":"纯爱","s":"娱乐圈"},{"m":"纯爱","s":"破镜重圆"},{"m":"纯爱","s":"强强"},{"m":"纯爱","s":"竹马"},{"m":"纯爱","s":"虐恋"},{"m":"纯爱","s":"电竞"},{"m":"纯爱","s":"古风"},{"m":"百合","s":"校园百合"},{"m":"百合","s":"都市百合"},{"m":"百合","s":"娱乐圈百合"},{"m":"百合","s":"古风百合"},{"m":"百合","s":"治愈"},{"m":"百合","s":"虐恋"},{"m":"无CP","s":"群像"},{"m":"无CP","s":"种田"},{"m":"无CP","s":"升级"},{"m":"无CP","s":"事业流"},{"m":"竞技","s":"电竞"},{"m":"竞技","s":"体育"},{"m":"竞技","s":"棋类"},{"m":"竞技","s":"赛车"},{"m":"轻小说","s":"异世界"},{"m":"轻小说","s":"日常治愈"},{"m":"轻小说","s":"魔法少女"},{"m":"轻小说","s":"冒险"},{"m":"同人","s":"动漫衍生"},{"m":"同人","s":"影视衍生"},{"m":"同人","s":"游戏衍生"}],"world":["重生","穿书","穿成配角","穿越","系统流","签到系统","随身空间","时间循环","平行时空","双重时空","梦境世界","失忆","换脸","互换身体","马甲","隐藏身份","替身设定","契约","诅咒","预言","转世","双生","克隆","AI觉醒","异能觉醒","灵根","经脉","内丹","符箓","阵法","炼器","御兽","召唤","位面","裂隙","星门","机甲","丧尸病毒","晶核","变异","基地","囤货","江湖门派","朝廷","藩王","宗门","魔教","妖族","神族","翼族","鲛人","精灵","矮人","龙族","吸血鬼","狼人","天使","恶魔","教会","皇权","议会","学院","神谕","天规","劫难","末法","飞升","渡劫","封神","轮回","忘川","鬼市","阴司","判官","城隍","茅山","道家","佛门","出马仙","赶尸","扎彩","阴阳眼","通灵","祖坟","古墓","机关术","粽子","摸金","守陵","秘境","修炼等级","职业体系","战斗力数值","宗门大比","拍卖会","积分商城"],"era":["上古","先秦","秦汉","三国","魏晋","隋唐","宋代","明代","清代","民国","抗战时期","建国初期","五十年代","六十年代","七十年代","八十年代","九十年代","千禧年","2010 年代","当代","近未来","远未来","架空古代","架空王朝","架空民国","异世界","星际时代","末世之后","灾变初期","冰河期","废土纪元","赛博时代","虚拟纪元","平行现代","仙侠纪元","民国上海","民国北平","香港八九十年代","改革开放初期","知青下乡","千禧校园","古代架空仙侠","战争年代","和平年代"],"space":["后宫","御书房","朝堂","王府","侯府","宅院","祠堂","绣楼","青楼","客栈","酒楼","江湖","山门","山洞","悬崖","雪山","荒漠","海岛","船上","皇宫","地宫","古墓","墓道","棺室","地下河","祭坛","寺庙","道观","义庄","鬼宅","老宅","医院","学校教室","宿舍","图书馆","操场","公司","写字楼","会议室","总裁办","剧组","直播间","网吧","咖啡馆","地铁","机场","军营","战场","军舰","飞船","太空站","机甲舱","废土基地","避难所","超市","菜市场","大院","胡同"],"femRole":["嫡女","庶女","官家小姐","丫鬟","公主","郡主","皇后","贵妃","嫔妃","宫女","女将","女帝","女官","医女","绣娘","掌柜","女商","农女","猎户女","渔女","村姑","知青","厂花","女教师","女学生","学霸","校花","医生","护士","律师","记者","设计师","演员","模特","练习生","主播","网红","女总裁","秘书","助理","保镖","特工","女警","法医","侦探","道士","法师","尼姑","圣女","仙娥","妖族少女","鲛人","人鱼","龙女","女骑士","魔法学徒","女巫","血族","丧尸女王","异能者","研究员","科学家","运动员","电竞选手","程序员","调香师","药师"],"maleRole":["王爷","世子","太子","皇帝","皇子","宰相","将军","侯爷","状元","书生","剑客","侠客","掌门","师兄","师尊","魔尊","妖王","仙尊","神君","天君","天师","捉鬼师","法医","刑警","侦探","律师","医生","外科医生","总裁","CEO","少爷","富二代","学霸","校霸","校草","老师","教练","运动员","电竞选手","程序员","黑客","军官","特种兵","兵王","佣兵","警察","匪首","杀手","刺客","保镖","司机","厨师","主播","影帝","导演","歌手","鲛人","龙族","精灵","骑士","魔法师","血族","丧尸王","异能者","机械师","科学家","少帅"],"rolefunc":["恶毒庶妹","恶毒嫡姐","白莲花","绿茶","忠心丫鬟","贴身嬷嬷","管家","家仆","跟班","白月光","替身","痴情男二","青梅","竹马","前未婚夫","前妻","情敌","闺蜜","损友","师门长辈","师兄","师姐","师弟","同门竞争者","家族长辈","家主","族长","太后","权臣","摄政王","幕僚","军师","副官","搭档","队友","宿敌","救命恩人","养父养母","邻居","房东","老板","上司","同事","孤儿院院长","宠物伙伴"],"villain":["家族内鬼","同门竞争","情敌","掌权者","太后","权臣","藩王","教主","魔尊","妖王","邪修","天道","命运","诅咒","鬼王","厉鬼","邪神","恶魔","血族始祖","丧尸母体","变异体","AI","幕后黑手","组织首领","财阀","军阀","外族入侵","叛徒","内奸","伪君子","伪善长辈","疯子","影子对手","旧日同伴","规则本身"],"rel":["三角关系","四角关系","师徒","师生","主仆","君臣","上下级","青梅竹马","伪兄妹","伪骨科","契约婚姻","协议恋爱","假结婚","假戏真做","先婚后爱","破镜重圆","追妻火葬场","替身文学","白月光替身","暗恋成真","双向暗恋","强取豪夺","囚禁","包养","联姻","和亲","换亲","宿敌","亦敌亦友","搭档","队友","同窗","邻居","合租","同事","上下铺","救命恩人","收养关系","师徒恋","仙凡恋","人妖恋","人鬼恋","跨种族","跨时空"],"plot":[{"g":"古言宅斗","b":"大婚退婚","w":0.95},{"g":"古言宅斗","b":"庶妹夺爱","w":0.9},{"g":"古言宅斗","b":"抄家灭门","w":0.9},{"g":"古言宅斗","b":"滴血验亲","w":0.85},{"g":"古言宅斗","b":"换子","w":0.85},{"g":"古言宅斗","b":"下毒","w":0.8},{"g":"古言宅斗","b":"陷害入狱","w":0.8},{"g":"古言宅斗","b":"嫡庶相争","w":0.75},{"g":"古言宅斗","b":"掌家权争夺","w":0.7},{"g":"古言宅斗","b":"装病避祸","w":0.6},{"g":"古言宅斗","b":"认亲反转","w":0.85},{"g":"古言宅斗","b":"奶娘背叛","w":0.65},{"g":"古言宅斗","b":"重掌家业","w":0.7},{"g":"古言宫斗","b":"选秀入宫","w":0.8},{"g":"古言宫斗","b":"麝香滑胎","w":0.85},{"g":"古言宫斗","b":"冷宫","w":0.8},{"g":"古言宫斗","b":"侍寝争宠","w":0.7},{"g":"古言宫斗","b":"太后垂帘","w":0.7},{"g":"古言宫斗","b":"巫蛊之祸","w":0.8},{"g":"古言宫斗","b":"假孕","w":0.75},{"g":"古言宫斗","b":"皇后被废","w":0.75},{"g":"古言宫斗","b":"宫女上位","w":0.65},{"g":"古言朝堂","b":"夺嫡","w":0.85},{"g":"古言朝堂","b":"科举舞弊","w":0.8},{"g":"古言朝堂","b":"边关急报","w":0.7},{"g":"古言朝堂","b":"和亲远嫁","w":0.8},{"g":"古言朝堂","b":"帝师布局","w":0.65},{"g":"古言朝堂","b":"党争清算","w":0.75},{"g":"古言朝堂","b":"御前对质","w":0.7},{"g":"古言朝堂","b":"密诏","w":0.7},{"g":"古言朝堂","b":"藩王造反","w":0.8},{"g":"仙侠","b":"入宗试炼","w":0.65},{"g":"仙侠","b":"拜师","w":0.6},{"g":"仙侠","b":"筑基突破","w":0.55},{"g":"仙侠","b":"宗门大比","w":0.7},{"g":"仙侠","b":"秘境探宝","w":0.7},{"g":"仙侠","b":"夺宝","w":0.65},{"g":"仙侠","b":"入魔","w":0.85},{"g":"仙侠","b":"渡劫飞升","w":0.8},{"g":"仙侠","b":"九重天罚","w":0.75},{"g":"仙侠","b":"师尊坠落","w":0.85},{"g":"仙侠","b":"人妖殊途","w":0.8},{"g":"仙侠","b":"千年等待","w":0.85},{"g":"仙侠","b":"忘川相遇","w":0.8},{"g":"仙侠","b":"为爱堕魔","w":0.85},{"g":"仙侠","b":"封印解除","w":0.75},{"g":"江湖","b":"灭门之夜","w":0.9},{"g":"江湖","b":"夺剑","w":0.7},{"g":"江湖","b":"武林大会","w":0.7},{"g":"江湖","b":"正邪大战","w":0.75},{"g":"江湖","b":"叛出师门","w":0.75},{"g":"江湖","b":"易容潜伏","w":0.7},{"g":"江湖","b":"以命换命","w":0.8},{"g":"江湖","b":"退隐","w":0.55},{"g":"现言豪门","b":"退婚","w":0.9},{"g":"现言豪门","b":"豪门认亲","w":0.8},{"g":"现言豪门","b":"破产","w":0.8},{"g":"现言豪门","b":"绝症","w":0.85},{"g":"现言豪门","b":"车祸失忆","w":0.85},{"g":"现言豪门","b":"替婚","w":0.85},{"g":"现言豪门","b":"离婚","w":0.8},{"g":"现言豪门","b":"带球跑","w":0.85},{"g":"现言豪门","b":"重逢","w":0.75},{"g":"现言豪门","b":"当众求婚","w":0.6},{"g":"现言豪门","b":"直播打脸","w":0.75},{"g":"现言豪门","b":"身份曝光","w":0.85},{"g":"现言职场","b":"竞标","w":0.6},{"g":"现言职场","b":"背锅","w":0.7},{"g":"现言职场","b":"升职","w":0.55},{"g":"现言职场","b":"办公室恋情","w":0.65},{"g":"现言职场","b":"辞职创业","w":0.6},{"g":"现言娱乐","b":"黑红","w":0.75},{"g":"现言娱乐","b":"热搜","w":0.65},{"g":"现言娱乐","b":"试镜","w":0.55},{"g":"校园","b":"转学","w":0.6},{"g":"校园","b":"月考","w":0.55},{"g":"校园","b":"暗恋","w":0.7},{"g":"校园","b":"告白","w":0.75},{"g":"校园","b":"打架","w":0.65},{"g":"校园","b":"高考","w":0.7},{"g":"校园","b":"毕业","w":0.65},{"g":"校园","b":"竞赛获奖","w":0.55},{"g":"校园","b":"校园霸凌","w":0.75},{"g":"校园","b":"重生回校","w":0.85},{"g":"末世","b":"丧尸爆发","w":0.9},{"g":"末世","b":"封城","w":0.75},{"g":"末世","b":"抢物资","w":0.65},{"g":"末世","b":"基地建立","w":0.75},{"g":"末世","b":"异能觉醒","w":0.85},{"g":"末世","b":"吸收晶核","w":0.9},{"g":"末世","b":"变异进化","w":0.8},{"g":"末世","b":"队友背叛","w":0.75},{"g":"末世","b":"舍身断后","w":0.85},{"g":"末世","b":"人类聚居地","w":0.6},{"g":"灵异","b":"见鬼","w":0.7},{"g":"灵异","b":"驱邪","w":0.75},{"g":"灵异","b":"茅山符","w":0.8},{"g":"灵异","b":"纸人复活","w":0.85},{"g":"灵异","b":"出马","w":0.8},{"g":"灵异","b":"赶尸","w":0.8},{"g":"灵异","b":"奶奶去世","w":0.5},{"g":"灵异","b":"祖坟出事","w":0.75},{"g":"灵异","b":"禁忌犯了","w":0.8},{"g":"灵异","b":"镜中有人","w":0.8},{"g":"灵异","b":"阴婚","w":0.8},{"g":"刑侦","b":"连环案","w":0.8},{"g":"刑侦","b":"尸检","w":0.7},{"g":"刑侦","b":"审讯","w":0.65},{"g":"刑侦","b":"法医报告","w":0.65},{"g":"刑侦","b":"追凶","w":0.7},{"g":"刑侦","b":"旧案重启","w":0.75},{"g":"刑侦","b":"卧底","w":0.75},{"g":"刑侦","b":"真凶反转","w":0.85},{"g":"无限流","b":"进入副本","w":0.85},{"g":"无限流","b":"规则宣告","w":0.85},{"g":"无限流","b":"队友死亡","w":0.8},{"g":"无限流","b":"通关奖励","w":0.75},{"g":"无限流","b":"主神提示","w":0.8},{"g":"无限流","b":"循环重来","w":0.85},{"g":"无限流","b":"团队分裂","w":0.7},{"g":"玄幻","b":"家族被欺","w":0.75},{"g":"玄幻","b":"觉醒武魂","w":0.8},{"g":"玄幻","b":"废柴翻身","w":0.8},{"g":"玄幻","b":"擂台上位","w":0.65},{"g":"玄幻","b":"抢夺机缘","w":0.65},{"g":"玄幻","b":"宗门覆灭","w":0.8},{"g":"通用情绪","b":"生离死别","w":0.7},{"g":"通用情绪","b":"误会分开","w":0.65},{"g":"通用情绪","b":"错过","w":0.6},{"g":"通用情绪","b":"等待","w":0.55},{"g":"通用情绪","b":"雪地","w":0.6},{"g":"通用情绪","b":"雨夜","w":0.55},{"g":"通用情绪","b":"悬崖","w":0.7},{"g":"通用情绪","b":"跳崖","w":0.8},{"g":"通用情绪","b":"挡剑","w":0.85},{"g":"通用情绪","b":"下跪","w":0.6},{"g":"通用情绪","b":"自刎","w":0.75},{"g":"通用情绪","b":"葬身火海","w":0.8},{"g":"通用情绪","b":"假死脱身","w":0.8},{"g":"通用情绪","b":"认亲","w":0.7},{"g":"通用情绪","b":"身份揭露","w":0.85},{"g":"通用情绪","b":"背叛","w":0.7},{"g":"通用情绪","b":"复仇成功","w":0.7},{"g":"通用情绪","b":"大仇得报","w":0.65},{"g":"通用情绪","b":"双胞胎梗","w":0.7},{"g":"通用情绪","b":"失忆忘人","w":0.8},{"g":"通用情绪","b":"最后一面","w":0.75}],"prop":["剑","刀","枪","弓","鞭","匕首","法宝","丹药","功法秘籍","玉佩","玉镯","戒指","令牌","面具","斗篷","护甲","晶核","晶石","符箓","铃铛","古琴","簪子","嫁衣","盖头","绣鞋","血书","信笺","日记","照片","手机","游戏舱","机甲","飞船","药剂","罐头","地图","钥匙","罗盘","铜镜","棺材","纸人","香炉","桃木剑","八卦镜","摸金符","猫","狗","龙","鸟","花"],"mood":["甜宠","虐恋","虐心","爽文","打脸","热血","治愈","日常","搞笑","沙雕","狗血","黑暗","压抑","恐怖","悬疑感","浪漫","悲情","遗憾","开放式","大团圆","意难平","孤独","温馨","紧张","慢热","快节奏","轻松","文艺","冷峻","史诗感","悬疑氛围","群像感","成长向","救赎向"],"syn":{"末日":"末世","僵尸":"丧尸","吸收晶核变强":"晶核","黑甲":"护甲","茅山术法":"茅山道术","学茅山":"茅山道术","有只猫":"猫","身边跟着猫":"猫","鲛人":"鲛人","人鱼":"鲛人","有翅膀住天上":"翼族","神族":"神族","阻止复活":"封印","反派叫破军":"破军","穿到书里":"穿书","穿成女配":"穿成配角","系统提示音":"系统流","无限副本":"无限流","主神空间":"主神空间","规则怪谈":"规则怪谈","回到过去":"时间旅行","重生一次":"重生","修真":"修真升级","修仙":"修真升级","飞升":"飞升","宗门":"宗门","打怪升级":"升级流","废柴逆袭":"废柴翻身","斗气":"武魂斗气","炼丹":"炼丹炼器","宫廷斗争":"宫斗","后宫争宠":"宫斗","宅门恩怨":"宅斗","嫡庶":"宅斗","退亲":"退婚","被退婚":"大婚退婚","抄家":"抄家灭门","满门抄斩":"抄家灭门","挡刀":"挡剑","替她死":"挡剑","跳崖":"跳崖","坠崖":"跳崖","失忆":"失忆","忘了所有人":"失忆忘人","假死":"假死脱身","诈死":"假死脱身","豪门":"豪门虐恋","霸道总裁":"总裁文","娱乐圈":"娱乐圈","黑红":"黑红","校园":"校园青春","早恋":"早恋","学霸":"学霸","校霸":"校霸","刑侦":"刑侦破案","破案":"刑侦破案","法医":"法医","连环杀人":"连环案","盗墓":"盗墓探险","古墓":"古墓","粽子":"粽子","摸金校尉":"摸金","赶尸":"赶尸","出马仙":"出马仙","阴阳眼":"阴阳眼","见鬼":"见鬼","吸血鬼":"吸血鬼","狼人":"狼人","精灵":"精灵","矮人":"矮人","龙骑士":"龙与骑士","魔法学院":"魔法学院","教会":"教会","恶魔契约":"恶魔契约","机甲":"机甲","星际":"星际航行","人工智能":"人工智能","赛博":"赛博朋克","灾变":"灾变求生","废土":"废土","极寒":"冰河极寒","囤货":"囤货求生","异能":"异能觉醒","觉醒":"异能觉醒","基地":"基地建设","契约婚姻":"契约婚姻","假结婚":"假结婚","先婚后爱":"先婚后爱","追妻":"追妻火葬场","破镜重圆":"破镜重圆","替身":"替身文学","白月光":"白月光替身","暗恋":"暗恋成真","双向奔赴":"双向暗恋","强取豪夺":"强取豪夺","囚禁":"囚禁","包养":"包养","和亲":"和亲","联姻":"联姻","师徒恋":"师徒恋","人妖恋":"人妖恋","虐":"虐恋","甜":"甜宠","爽":"爽文","打脸":"打脸","狗血":"狗血","治愈":"治愈","be":"悲情","he":"大团圆","开放式结局":"开放式","意难平":"意难平","猫":"猫","奶奶去世":"奶奶去世","奶奶死了":"奶奶去世","吃人":"丧尸","末日求生":"末世","末日丧尸":"末世丧尸"}};
+
+let SEL = {};              // {group:[值]} 抽屉里选中的标签
+const FTXT={titlelen:'f_titlelen',year:'f_year',fem:'f_fem',male:'f_male',other:'f_other',
+ call:'f_call',scene:'f_scene',mark:'f_mark',terms:'f_terms',source:'f_source'};
+const FNAME={titlelen:'书名长度',year:'看的年份',fem:'女主名',male:'男主名',other:'其他角色',
+ call:'称呼',scene:'叙述片段',mark:'信物',terms:'专有名词',source:'来源',main:'主类型',
+ sub:'二级子类',world:'世界观设定',era:'时代背景',space:'场景空间',femRole:'女主身份',
+ maleRole:'男主身份',rolefunc:'配角功能位',villain:'反派类型',rel:'关系结构',plot:'情节桥段',mood:'情绪氛围'};
+const HARD_GROUPS=['world','plot','rolefunc','villain','rel','sub'];
+
+function initForm(){
+  const box=$('g_main');
+  if(box) box.innerHTML = VOCAB.main.map(v=>`<button class="chip" data-g="main" data-v="${esc(v)}" onclick="toggleMain(this)">${esc(v)}</button>`).join('');
+  Object.keys(FTXT).forEach(k=>{
+    const el=$(FTXT[k]);
+    if(el && el.addEventListener) el.addEventListener('input',()=>{ updateFormCount(); if(k==='scene') suggestFromScene(); });
+  });
+}
+function toggleMain(btn){
+  const wasOn = btn.classList.contains('on');
+  document.querySelectorAll('[data-g="main"]').forEach(c=>c.classList.remove('on'));
+  if(!wasOn) btn.classList.add('on');
+  updateFormCount();
+}
+function mainSel(){ const out=[]; document.querySelectorAll('[data-g="main"].on').forEach(c=>out.push(c.dataset.v)); return out; }
+function fin(id){ const el=$(id); return el? (el.value||'').trim() : ''; }
+function selCount(){ let n=0; Object.keys(SEL).forEach(g=>{ n += (SEL[g]||[]).length; }); return n; }
+function selFlat(){ const out=[]; Object.keys(SEL).forEach(g=>{ (SEL[g]||[]).forEach(v=>out.push(v)); }); return out; }
+
+function collectForm(){
+  const o={}; Object.keys(FTXT).forEach(k=>{ o[k]=fin(FTXT[k]); });
+  o.main = mainSel()[0]||'';
+  return o;
+}
+function filledList(o){
+  const L=[]; Object.keys(FTXT).forEach(k=>{ if(o[k]) L.push(k); });
+  if(o.main) L.push('main');
+  Object.keys(SEL).forEach(g=>{ if(SEL[g] && SEL[g].length) L.push(g); });
+  return L;
+}
+function updateFormCount(){
+  const used = filledList(collectForm()).length;
+  if($('f_count')) $('f_count').textContent = '已填 '+used+' 项（没填的条件不会限制结果）';
+  if($('moreCount')) $('moreCount').textContent = selCount();
+  if($('fdwNum')) $('fdwNum').textContent = selCount()+' 项已选';
+}
+function clearForm(){
+  Object.keys(FTXT).forEach(k=>{ const el=$(FTXT[k]); if(el) el.value=''; });
+  document.querySelectorAll('[data-g="main"]').forEach(c=>c.classList.remove('on'));
+  SEL={}; ST.genre=null; ST.ending=null;
+  if(typeof renderDrawer==='function') renderDrawer('');
+  if($('sugRow')) $('sugRow').innerHTML='';
+  updateFormCount();
+}
+
+function searchByForm(){
+  const o=collectForm(); const used=filledList(o);
+  if(!used.length){ alert('至少填一项，或从「更多条件」里选一个标签'); return; }
+  const q=[o.scene,o.fem,o.male,o.other,o.call,o.mark,o.terms].filter(Boolean).join(' ');
+  const tags=selFlat();
+  const inf=inferTags(q);
+  ST.genre=o.main||null; ST.ending=null;
+
+  const must=[].concat(SEL.world||[],SEL.plot||[],SEL.rolefunc||[],SEL.villain||[],SEL.rel||[],SEL.sub||[]);
+  const rows=[];
+  BOOKS.forEach(b=>{
+    if(ST.genre && b.g!==ST.genre && b.s!==ST.genre && ((SEL.sub||[]).indexOf(b.s)===-1)) return;
+    const r=score(b,q,inf,tags);
+    const passMust = !must.length || must.some(t=>bookTags(b).some(x=>tagHit(x,t)));
+    let extra=0;
+    if(o.year){ const y=parseInt(o.year,10); if(!isNaN(y)){ const d=Math.abs(b.y-y); if(d<=3){ extra+=8; r.ev.push('年份相近 '+(d===0?'同年':'±'+d+'年')); } } }
+    if(o.titlelen){ const tl=[...b.t].length; const d=Math.abs(tl-parseInt(o.titlelen,10)); if(d<=1){ extra+=8; r.ev.push('书名长度吻合'); } }
+    if(o.source && (b.p||'').indexOf(o.source)>-1){ extra+=10; r.ev.push('平台 / 来源吻合'); }
+    r.s+=extra; r.pct=Math.max(26,Math.min(98,26+r.s));
+    rows.push({b:b,r:r,pass:passMust});
+  });
+  rows.sort((x,y)=>y.r.s-x.r.s);
+  let keep=rows.filter(x=>x.pass);
+  let loose=false;
+  if(!keep.length && q){ keep=rows.slice(0,6); loose=true; }
+  else if(!keep.length && !must.length) keep=rows.filter(x=>x.r.s>=8);
+  if(keep.length<3 && rows.length && rows[0].r.s>=8 && (!must.length || q)) keep=rows.slice(0,6);
+  ST.cands=keep.slice(0,8);
+  renderRes(q,inf,tags);
+  $('resMeta').textContent='已填 '+used.length+' 项：'+used.slice(0,6).map(k=>FNAME[k]||k).join('、')
+    +(used.length>6?' 等 '+used.length+' 项':'')
+    +(loose?' ｜ 这些标签在示例库中没有命中，下面按叙述相似度推荐':(ST.cands.length===0?' ｜ 没有一本同时满足':''));
+  go('res');
+}
+function formToPost(){
+  const o=collectForm();
+  const txt=[o.scene,o.fem,o.male,o.other,o.mark,o.terms].filter(Boolean).join('，')
+    || '（表单没填，写一句你记得的）';
+  go('comm');
+  if($('postText')) $('postText').value=txt;
+  if(ST.genre) POSTG=ST.genre;
+}
+
+const FSEC = [
+ {k:'sub',   t:'二级子类'},
+ {k:'world', t:'世界观设定'},
+ {k:'era',   t:'时代背景'},
+ {k:'space', t:'场景空间'},
+ {k:'femRole',t:'女主身份'},
+ {k:'maleRole',t:'男主身份'},
+ {k:'rolefunc',t:'配角功能位'},
+ {k:'villain',t:'反派类型'},
+ {k:'rel',   t:'关系结构'},
+ {k:'plot',  t:'情节桥段'},
+ {k:'mood',  t:'情绪氛围'}
+];
+const FOPEN = {};   // 哪些组已展开
+const COMMON = 14;
+
+function fValues(k){
+  const raw = VOCAB[k] || [];
+  return raw.map(x=>{
+    if(typeof x === 'string') return {v:x, label:x};
+    if(x.s) return {v:x.s, label:x.s, pre:x.m};
+    if(x.b) return {v:x.b, label:x.b, pre:x.g};
+    return {v:String(x), label:String(x)};
+  });
+}
+function fLabel(k,v){
+  const it = fValues(k).filter(x=>x.v===v)[0];
+  return it ? it.label : v;
+}
+function fHas(k,v){ return (SEL[k]||[]).indexOf(v)>-1; }
+function fToggle(k,v){
+  if(!SEL[k]) SEL[k]=[];
+  const i = SEL[k].indexOf(v);
+  if(i>-1) SEL[k].splice(i,1); else SEL[k].push(v);
+  renderDrawer(($('fdwSearch')||{}).value||'');
+  updateFormCount();
+}
+function fClearGroup(k){ SEL[k]=[]; renderDrawer(($('fdwSearch')||{}).value||''); updateFormCount(); }
+
+function renderDrawer(q){
+  const body=$('fdwBody'); if(!body) return;
+  q=(q||'').trim();
+  let html='';
+  const picked = selFlat();
+  if(picked.length){
+    html += '<div class="fsel"><div class="fselt">已选 '+picked.length+' 项</div><div class="chips">'
+      + Object.keys(SEL).map(g=>(SEL[g]||[]).map(v=>`<button class="chip on" onclick="fToggle('${g}','${esc(v)}')">${esc(fLabel(g,v))} ✕</button>`).join('')).join('')
+      + '</div></div>';
+  }
+  FSEC.forEach(sec=>{
+    let items = fValues(sec.k);
+    if(q){
+      const ql=q.toLowerCase();
+      items = items.filter(x=>{
+        if(x.label.toLowerCase().indexOf(ql)>-1) return true;
+        if(x.pre && x.pre.toLowerCase().indexOf(ql)>-1) return true;
+        for(const a in VOCAB.syn){
+          if(a.toLowerCase().indexOf(ql)>-1){
+            const std=VOCAB.syn[a];
+            if(x.label.indexOf(std)>-1 || std.indexOf(x.label)>-1) return true;
+          }
+        }
+        return false;
+      });
+      if(!items.length) return;
+      items = items.slice(0,90);
+    }else if(!FOPEN[sec.k]){
+      items = items.slice(0,COMMON);
+    }
+    const selN = (SEL[sec.k]||[]).length;
+    html += '<div class="fsec">'
+      + '<div class="fsect"><span>'+sec.t+'</span>'
+      + (q? '<em>命中 '+items.length+'</em>' : (selN? '<em>已选 '+selN+'</em>':''))
+      + '<b onclick="toggleGroup(\''+sec.k+'\')">'+(q? '':'ᐧᐧᐧ')+'</b></div>'
+      + '<div class="chips">'
+      + items.map(x=>`<button class="chip${fHas(sec.k,x.v)?' on':''}" onclick="fToggle('${sec.k}','${esc(x.v)}')">${esc(x.label)}</button>`).join('')
+      + '</div>';
+    if(!q){
+      const total=fValues(sec.k).length;
+      if(!FOPEN[sec.k] && total>COMMON){
+        html += '<button class="fmore" onclick="toggleGroup(\''+sec.k+'\')">展开全部 '+total+' 条 ›</button>';
+      }else if(FOPEN[sec.k]){
+        html += '<button class="fmore" onclick="toggleGroup(\''+sec.k+'\')">收起 ‹</button>';
+      }
+    }
+    html += '</div>';
+  });
+  if(!html) html='<div class="empty">没有匹配的标签，换个说法试试</div>';
+  body.innerHTML=html;
+}
+function toggleGroup(k){ FOPEN[k]=!FOPEN[k]; renderDrawer(($('fdwSearch')||{}).value||''); }
+function openFilterDrawer(){ $('fdw').classList.add('on'); renderDrawer(($('fdwSearch')||{}).value||''); updateFormCount(); }
+function closeFilterDrawer(){ $('fdw').classList.remove('on'); }
+function applyDrawer(){ closeFilterDrawer(); searchByForm(); }
+
+// 从叙述片段里猜标签
+function suggestFromScene(){
+  const t=fin('f_scene'); const row=$('sugRow'); if(!row) return;
+  if(!t){ row.innerHTML=''; return; }
+  const cands=[];
+  const push=(g,v)=>{ if(cands.length<6 && !fHas(g,v) && cands.every(c=>c.v!==v)) cands.push({g:g,v:v}); };
+  ['world','sub','femRole','maleRole','rolefunc','villain','rel','era','space','plot','prop','mood'].forEach(g=>{
+    fValues(g).forEach(x=>{ if(x.label.length>=2 && t.indexOf(x.label)>-1) push(g,x.v); });
+  });
+  for(const a in VOCAB.syn){
+    if(t.indexOf(a)>-1){
+      const std=VOCAB.syn[a];
+      ['world','sub','femRole','maleRole','rolefunc','villain','rel','era','space','plot','mood','prop'].forEach(g=>{
+        fValues(g).forEach(x=>{ if(x.v===std) push(g,x.v); });
+      });
+    }
+  }
+  if(!cands.length){ row.innerHTML=''; return; }
+  row.innerHTML='<span class="sugt">猜你在找</span>'
+    + cands.map(c=>`<button class="chip sugc" onclick="fToggle('${c.g}','${esc(c.v)}')">＋ ${esc(c.v)}</button>`).join('');
+}
+
+initForm();
+updateFormCount();
+renderDrawer('');
+
+</script>
+<script src="./cloud.js"></script>
+</body>
+</html>
