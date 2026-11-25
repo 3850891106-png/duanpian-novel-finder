@@ -9,7 +9,7 @@
   if (stat && stat.parentNode) stat.parentNode.insertBefore(cloudStatus, stat);
   cloudStatus.textContent = enabled ? "正在连接云端书库…" : "云端未配置";
 
-  async function rpc(name, body = {}) {
+  async function rpc(name, body = {}, options = {}, attempt = 0) {
     if (!enabled) throw new Error("Supabase is not configured");
     const response = await fetch(
       `${config.supabaseUrl.replace(/\/$/, "")}/rest/v1/rpc/${name}`,
@@ -27,6 +27,15 @@
     );
     if (!response.ok) {
       const detail = await response.text();
+      if (
+        options.retry &&
+        attempt < 1 &&
+        response.status === 500 &&
+        detail.includes("57014")
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 180));
+        return rpc(name, body, options, attempt + 1);
+      }
       throw new Error(`Supabase ${response.status}: ${detail.slice(0, 260)}`);
     }
     return response.json();
@@ -90,15 +99,17 @@
     if (!enabled) return;
     try {
       const stats = await rpc("corpus_stats");
-      const line = `云端检索 · ${Number(stats.books || 0).toLocaleString("zh-CN")} 本书 · ${Number(stats.scenes || 0).toLocaleString("zh-CN")} 条场景`;
+      const line =
+        `云端检索 · ${Number(stats.books || 0).toLocaleString("zh-CN")} 本书 · ` +
+        `${Number(stats.scenes || 0).toLocaleString("zh-CN")} 条场景样本 · 11 个数据源`;
       if (stat) stat.textContent = line;
       const kpis = document.getElementById("kpis");
       if (kpis) {
         kpis.innerHTML = [
           [`${Number(stats.books || 0).toLocaleString("zh-CN")} 本`, "云端书目"],
-          [`${Number(stats.scenes || 0).toLocaleString("zh-CN")} 条`, "原文场景"],
-          ["14 组", "白名单标签"],
-          [`${Number(stats.terms || 0).toLocaleString("zh-CN")} 个`, "专名候选"],
+          [`${Number(stats.scenes || 0).toLocaleString("zh-CN")} 条`, "原文场景样本"],
+          [`${Number(stats.books_with_scenes || 0).toLocaleString("zh-CN")} 本`, "场景覆盖"],
+          ["11 套", "已整合数据源"],
         ]
           .map(
             ([value, label]) =>
@@ -159,7 +170,7 @@
     };
     try {
       cloudStatus.textContent = "正在检索云端原文…";
-      const rows = await rpc("search_books", payload);
+      const rows = await rpc("search_books_v2", payload, { retry: true });
       ST.genre = o.main || null;
       ST.ending = null;
       ST.cands = (rows || []).map(remoteResult);

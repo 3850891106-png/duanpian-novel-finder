@@ -666,7 +666,33 @@ function toggleSel(kind,v,btn){
 function inferTags(text){
   const t=(text||'').toLowerCase(); const out=[];
   LEX.forEach(e=>{ if(e.p.some(p=>t.indexOf(p.toLowerCase())>-1) && out.indexOf(e.t)===-1) out.push(e.t); });
-  return out;
+  const addConcept=(tag)=>{
+    const value=String(tag||'').trim();
+    if(value.length>=2 && out.indexOf(value)===-1) out.push(value);
+  };
+  const addLiteral=(tag)=>{
+    const value=String(tag||'').trim();
+    if(value.length>=2 && t.indexOf(value.toLowerCase())>-1) addConcept(value);
+  };
+  if(typeof VOCAB==='object'){
+    Object.keys(VOCAB).forEach(key=>{
+      if(!Array.isArray(VOCAB[key])) return;
+      VOCAB[key].forEach(item=>{
+        if(typeof item==='string') addLiteral(item);
+        else {
+          addLiteral(item.s);
+          addLiteral(item.b);
+          addLiteral(item.g);
+        }
+      });
+    });
+    Object.keys(VOCAB.syn||{}).forEach(cue=>{
+      if(t.indexOf(cue.toLowerCase())>-1) addConcept(VOCAB.syn[cue]);
+    });
+  }
+  return out
+    .sort((a,b)=>String(b).length-String(a).length)
+    .slice(0,20);
 }
 function score(b, q, inf, tags){
   const all=bookTags(b);
